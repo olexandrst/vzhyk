@@ -611,9 +611,8 @@
 
                 jobs.push({
                     id: jobId,
-                    description: `${orderNum} - ${product}`,
-                    location: [lon, lat],
-                    amount: [Math.ceil(volume * 100)] // volume in integer units (x100 for precision)
+                    location: [Math.round(lon * 10000) / 10000, Math.round(lat * 10000) / 10000],
+                    amount: [Math.ceil(volume * 100)]
                 });
                 jobOrderMap[jobId] = { orderNum, product, volume, country, lon, lat };
                 jobId++;
@@ -628,25 +627,25 @@
             progressText.textContent = `Підготовлено ${jobs.length} точок доставки. Відправка на VROOM API...`;
             progressBar.style.width = '30%';
 
-            // Build vehicles: 30 x 78m³ + 30 x 30m³
+            // Build vehicles: 30 x 78m³ (id 1-30) + 30 x 30m³ (id 31-60)
+            // No descriptions to minimize payload size
             const vehicles = [];
             let vehicleId = 1;
+            const depotCoord = [DEPOT_LON, DEPOT_LAT];
             for (let i = 0; i < 30; i++) {
                 vehicles.push({
                     id: vehicleId++,
-                    description: `Вантажівка 78м³ #${i + 1}`,
-                    start: [DEPOT_LON, DEPOT_LAT],
-                    end: [DEPOT_LON, DEPOT_LAT],
-                    capacity: [78 * 100] // match job amount scale
+                    start: depotCoord,
+                    end: depotCoord,
+                    capacity: [7800]
                 });
             }
             for (let i = 0; i < 30; i++) {
                 vehicles.push({
                     id: vehicleId++,
-                    description: `Вантажівка 30м³ #${i + 1}`,
-                    start: [DEPOT_LON, DEPOT_LAT],
-                    end: [DEPOT_LON, DEPOT_LAT],
-                    capacity: [30 * 100]
+                    start: depotCoord,
+                    end: depotCoord,
+                    capacity: [3000]
                 });
             }
 
@@ -699,14 +698,8 @@
 
                 const routeLabel = 'MF-' + String(routeNumber).padStart(3, '0');
 
-                // Determine truck type from capacity
-                const vehicleDesc = route.description || '';
-                let truckType = '';
-                if (vehicleDesc.includes('78')) {
-                    truckType = '78';
-                } else if (vehicleDesc.includes('30')) {
-                    truckType = '30';
-                }
+                // Vehicle IDs 1-30 = 78m³, 31-60 = 30m³
+                const truckType = route.vehicle <= 30 ? '78' : '30';
 
                 const countries = new Set();
                 let seq = 1;
