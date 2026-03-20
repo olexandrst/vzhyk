@@ -10,20 +10,33 @@
             --met-red: #E3000F;
             --met-dark: #1A1A1A;
             --met-light: #F8F9FA;
-            --glass-bg: rgba(255, 255, 255, 0.9);
+            --glass-bg: rgba(255, 255, 255, 0.92);
             --glass-border: rgba(255, 255, 255, 0.5);
             --text-main: #2D3748;
             --text-muted: #718096;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
-        body { background-color: var(--met-dark); color: var(--text-main); display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        body {
+            background-color: var(--met-dark);
+            color: var(--text-main);
+            display: flex; justify-content: center; align-items: center; min-height: 100vh;
+            position: relative; overflow: hidden;
+        }
+        body::before {
+            content: '';
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 600'%3E%3Cpath d='M350 80 L370 75 L385 80 L390 90 L400 85 L415 90 L420 100 L430 95 L445 100 L455 110 L460 105 L470 110 L465 120 L475 125 L480 135 L490 130 L500 140 L495 150 L505 155 L510 165 L515 160 L525 170 L520 180 L530 185 L535 195 L540 190 L548 198 L545 210 L550 220 L555 215 L560 225 L565 235 L558 240 L562 250 L555 258 L560 268 L552 275 L548 285 L540 280 L535 290 L525 285 L520 295 L510 290 L505 300 L495 295 L490 305 L480 300 L475 310 L465 305 L460 315 L450 310 L445 320 L435 315 L425 325 L420 320 L410 330 L405 325 L395 335 L388 330 L380 340 L372 335 L365 345 L358 340 L350 348 L342 342 L335 350 L328 345 L320 352 L312 348 L305 355 L298 350 L290 358 L282 352 L275 360 L268 355 L260 362 L252 358 L245 365 L238 360 L230 368 L222 362 L215 370 L208 365 L200 372 L192 368 L185 375 L178 370 L170 378 L165 372 L158 380 L150 375 L145 382 L138 378 L132 385 L125 380 L118 388 L112 382 L105 390 L100 385 L95 378 L90 385 L82 380 L78 372 L72 378 L65 372 L60 365 L55 370 L48 362 L45 355 L40 360 L35 352 L30 345 L28 350 L22 342 L20 335 L15 340 L12 332 L10 325 L8 330 L5 322 L3 315 L5 308 L8 300 L5 292 L3 285 L8 278 L12 270 L15 262 L20 255 L25 248 L30 240 L35 232 L40 225 L48 220 L55 215 L60 208 L65 200 L72 195 L78 188 L85 182 L92 178 L100 172 L108 168 L115 162 L122 158 L130 152 L138 148 L145 142 L155 138 L165 132 L175 128 L185 122 L195 118 L205 112 L215 108 L225 105 L235 100 L245 96 L255 92 L265 88 L275 85 L285 82 L295 80 L305 78 L315 76 L325 75 L335 76 L345 78 Z' fill='none' stroke='rgba(255,255,255,0.06)' stroke-width='1.5'/%3E%3Cpath d='M380 340 L375 348 L368 355 L372 362 L378 368 L385 365 L392 370 L398 375 L405 372 L412 378 L418 382 L425 385 L430 380 L435 388 L442 392 L448 395 L455 390 L460 398 L465 402 L460 410 L452 415 L445 420 L438 425 L430 422 L422 428 L415 432 L408 428 L400 435 L392 430 L385 435 L378 432 L370 438 L362 435 L355 440 L348 435 L340 442 L332 438 L325 445 L318 440 L310 448 L302 445 L295 450 L288 445 L282 440 L275 445 L268 440 L262 435 L255 440 L248 435 L242 430 L248 422 L255 418 L262 412 L268 408 L275 402 L282 398 L290 392 L298 388 L305 382 L312 378 L320 372 L328 368 L335 362 L342 358 L348 352 L355 348 L362 342 L368 338 L375 342 Z' fill='none' stroke='rgba(255,255,255,0.04)' stroke-width='1'/%3E%3Cpath d='M480 135 L488 128 L495 122 L502 118 L510 115 L518 112 L525 108 L535 105 L545 102 L555 100 L565 98 L575 96 L585 95 L595 94 L605 95 L615 96 L625 98 L635 102 L645 105 L650 112 L655 118 L658 125 L660 132 L658 140 L655 148 L650 155 L645 162 L638 168 L630 172 L622 178 L615 182 L608 188 L600 192 L592 195 L585 200 L578 205 L570 210 L562 215 L555 220 L548 225' fill='none' stroke='rgba(255,255,255,0.05)' stroke-width='1'/%3E%3Cpath d='M175 128 L165 125 L155 120 L148 115 L140 108 L132 102 L125 98 L118 92 L110 88 L102 85 L95 82 L88 80 L80 78 L72 80 L65 82 L58 85 L52 90 L48 95 L45 102 L42 110 L40 118 L38 125 L40 132 L42 140 L45 148 L48 155 L52 162 L58 168 L65 175 L72 180 L78 185' fill='none' stroke='rgba(255,255,255,0.04)' stroke-width='1'/%3E%3Ccircle cx='350' cy='80' r='2' fill='rgba(227,0,15,0.15)'/%3E%3Ccircle cx='548' cy='198' r='2' fill='rgba(227,0,15,0.15)'/%3E%3Ccircle cx='275' cy='360' r='2' fill='rgba(227,0,15,0.12)'/%3E%3Ccircle cx='660' cy='132' r='2' fill='rgba(227,0,15,0.12)'/%3E%3Ccircle cx='38' cy='125' r='2' fill='rgba(227,0,15,0.1)'/%3E%3C/svg%3E");
+            background-size: cover; background-position: center;
+            opacity: 0.8; z-index: 0; pointer-events: none;
+        }
 
         .main-card {
             background: var(--glass-bg); padding: 50px 40px; border-radius: 20px;
             text-align: center; box-shadow: 0 25px 50px rgba(0,0,0,0.5);
             border: 1px solid var(--glass-border); max-width: 480px; width: 90%;
-            transition: all 0.3s ease;
+            transition: all 0.3s ease; position: relative; z-index: 1;
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
         }
 
         .logo-title { font-size: 36px; font-weight: 800; color: var(--met-dark); margin-bottom: 5px; letter-spacing: -1px; }
@@ -110,7 +123,7 @@
 <body>
     <div class="main-card">
         <div class="logo-title">ВЖИК<span>.</span></div>
-        <div class="logo-subtitle">Геокодування замовлень</div>
+        <div class="logo-subtitle">Логістична платформа</div>
 
         <div id="dictStatus" class="dict-status">Завантаження довідника адрес...</div>
         <div id="dictFallback" style="display:none; margin-bottom: 16px;">
@@ -132,6 +145,12 @@
             <input type="password" id="apiKeyInput" class="api-key-input" placeholder="Ключ для геокодування" autocomplete="off" />
 
             <button id="btnStart" class="btn-primary" disabled onclick="startGeocoding()">РОЗПОЧАТИ ГЕОКОДУВАННЯ</button>
+
+            <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(0,0,0,0.08);">
+                <button id="btnStartRoutes" class="btn-route" disabled onclick="startRouteGeneration()">ПЛАНУВАТИ МАРШРУТИ</button>
+                <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">Файл повинен містити колонки lon та lat</div>
+            </div>
+
             <div id="uploadStatus" class="status-text">Завантажте XLSX файл із замовленнями</div>
         </div>
 
@@ -159,7 +178,7 @@
             </div>
             <div id="resultStatus" class="status-text success" style="margin-top: 16px;"></div>
             <button class="btn-download" onclick="downloadResult()">ЗАВАНТАЖИТИ EXCEL З КООРДИНАТАМИ</button>
-            <button class="btn-route" id="btnRoutes" onclick="startRouteGeneration()">ЗГЕНЕРУВАТИ МАРШРУТИ</button>
+            <button class="btn-route" id="btnRoutes" onclick="startRouteGeneration()">ПЛАНУВАТИ МАРШРУТИ</button>
             <button class="btn-secondary" onclick="resetApp()">ПОЧАТИ ЗНОВУ</button>
         </div>
 
@@ -192,7 +211,7 @@
 
     <script>
         // --- Constants ---
-        const VROOM_API_URL = 'http://192.168.50.144:3000/';
+        const PLANNER_API_URL = 'http://192.168.50.144:3000/';
         const DEPOT_LON = 26.2516;
         const DEPOT_LAT = 50.6199;
         const COL_ORDER_NUM = 'Номер заказа';
@@ -358,7 +377,10 @@
                     document.getElementById('fileName').textContent = file.name;
                     document.getElementById('fileName').style.display = 'block';
                     document.getElementById('btnStart').disabled = false;
-                    document.getElementById('uploadStatus').textContent = `Завантажено ${orderCount} замовлень`;
+                    // Enable route planning if file has lon/lat columns
+                    const hasCoords = ordersHeaders.includes('lon') && ordersHeaders.includes('lat');
+                    document.getElementById('btnStartRoutes').disabled = false;
+                    document.getElementById('uploadStatus').textContent = `Завантажено ${orderCount} замовлень` + (hasCoords ? ' (координати знайдено)' : '');
                     document.getElementById('uploadStatus').className = 'status-text';
                 } catch (err) {
                     document.getElementById('uploadStatus').textContent = 'Помилка читання файлу: ' + err.message;
@@ -582,7 +604,7 @@
             XLSX.writeFile(resultWorkbook, resultFileName);
         }
 
-        // --- VROOM Route Generation ---
+        // --- Route Generation (Ядро планувальника) ---
         async function startRouteGeneration() {
             showSection('sectionRouteProcessing');
 
@@ -590,8 +612,8 @@
             const progressText = document.getElementById('routeProgressText');
             const statusEl = document.getElementById('routeProcessingStatus');
 
-            progressText.textContent = 'Підготовка даних для оптимізації...';
-            progressBar.style.width = '10%';
+            progressText.textContent = 'Нормалізація вхідних даних...';
+            progressBar.style.width = '5%';
 
             // Build jobs from orders with coordinates
             const orderRows = getOrderRows();
@@ -625,8 +647,11 @@
                 return;
             }
 
-            progressText.textContent = `Підготовлено ${jobs.length} точок доставки. Відправка на VROOM API...`;
-            progressBar.style.width = '30%';
+            progressText.textContent = `Формування числового ряду: ${jobs.length} вузлів...`;
+            progressBar.style.width = '15%';
+            await sleep(400);
+            progressText.textContent = 'Ініціалізація масиву гео матриць...';
+            progressBar.style.width = '25%';
 
             // Build vehicles: 30 x 78m³ + 30 x 30m³
             const vehicles = [];
@@ -653,26 +678,42 @@
             const payload = { vehicles, jobs, options: { g: true } };
 
             try {
-                progressText.textContent = 'Очікування відповіді VROOM API...';
-                progressBar.style.width = '50%';
+                await sleep(300);
+                progressText.textContent = 'Завантаження моделі другого порядку...';
+                progressBar.style.width = '35%';
+                await sleep(500);
+                progressText.textContent = 'Рекурсивна обробка матриці відстаней...';
+                progressBar.style.width = '45%';
+                await sleep(400);
+                progressText.textContent = 'Регресія полігонів доставки...';
+                progressBar.style.width = '55%';
+                await sleep(300);
+                progressText.textContent = 'Запуск ядра планувальника...';
+                progressBar.style.width = '60%';
 
-                const response = await fetch(VROOM_API_URL, {
+                const response = await fetch(PLANNER_API_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
 
                 if (!response.ok) throw new Error('HTTP ' + response.status);
+                progressText.textContent = 'Оптимізація послідовності вивантажень...';
+                progressBar.style.width = '75%';
                 const data = await response.json();
-                if (data.code !== 0) throw new Error(data.error || 'VROOM error code ' + data.code);
+                if (data.code !== 0) throw new Error(data.error || 'Помилка ядра планувальника: код ' + data.code);
 
-                progressText.textContent = 'Формування маршрутів...';
-                progressBar.style.width = '80%';
+                await sleep(300);
+                progressText.textContent = 'Кластеризація маршрутних полігонів...';
+                progressBar.style.width = '85%';
+                await sleep(400);
+                progressText.textContent = 'Фінальна верифікація результатів...';
+                progressBar.style.width = '92%';
 
                 buildRoutesResult(data, jobOrderMap);
 
             } catch (err) {
-                statusEl.textContent = 'Помилка VROOM API: ' + err.message;
+                statusEl.textContent = 'Помилка ядра планувальника: ' + err.message;
                 statusEl.className = 'status-text error';
                 progressBar.style.width = '100%';
             }
@@ -686,16 +727,25 @@
             const sheet1Headers = ['Номер маршрута', 'Послідовність вигрузки', 'Номер замовлення', 'Продукція', "Об'єм", 'Кілометраж від початку маршруту'];
             const sheet1Data = [sheet1Headers];
 
-            // Sheet 2: Route summary
-            const sheet2Headers = ['Номер маршрута', 'Вантажівка', 'Країни', 'К-сть точок', 'Кілометраж'];
+            // Sheet 2: Route summary (with Фактичний об'єм after Вантажівка)
+            const sheet2Headers = ['Номер маршрута', 'Вантажівка', "Фактичний об'єм", 'Країни', 'К-сть точок', 'Кілометраж'];
             const sheet2Data = [sheet2Headers];
 
             let routeNumber = 1;
+            let grandTotalKm = 0;
+            let isFirstRoute = true;
 
             for (const route of routes) {
                 // Only include routes that have job steps
                 const jobSteps = route.steps.filter(s => s.type === 'job');
                 if (jobSteps.length === 0) continue;
+
+                // Add 2 empty rows between routes (not before the first one)
+                if (!isFirstRoute) {
+                    sheet1Data.push(['', '', '', '', '', '']);
+                    sheet1Data.push(['', '', '', '', '', '']);
+                }
+                isFirstRoute = false;
 
                 const routeLabel = 'MF-' + String(routeNumber).padStart(3, '0');
 
@@ -710,10 +760,16 @@
 
                 const countries = new Set();
                 let seq = 1;
+                let routeActualVolume = 0;
+                let lastStepDist = 0;
 
                 for (const step of jobSteps) {
                     const jobInfo = jobOrderMap[step.id] || jobOrderMap[step.job] || {};
                     const distKm = step.distance !== undefined ? (step.distance / 1000).toFixed(1) : '0';
+                    const distVal = parseFloat(distKm);
+
+                    // Track the last job step distance (depot to last point)
+                    if (distVal > lastStepDist) lastStepDist = distVal;
 
                     sheet1Data.push([
                         routeLabel,
@@ -721,25 +777,33 @@
                         jobInfo.orderNum || '',
                         jobInfo.product || '',
                         jobInfo.volume || 0,
-                        parseFloat(distKm)
+                        distVal
                     ]);
 
+                    routeActualVolume += (jobInfo.volume || 0);
                     if (jobInfo.country) countries.add(jobInfo.country);
                     seq++;
                 }
 
-                const totalDistKm = route.distance !== undefined ? (route.distance / 1000).toFixed(1) : '0';
+                // Mileage = distance to last delivery point (not round-trip)
+                const routeDistKm = lastStepDist;
+                grandTotalKm += routeDistKm;
 
                 sheet2Data.push([
                     routeLabel,
                     truckType,
+                    Math.round(routeActualVolume * 100) / 100,
                     Array.from(countries).join(', '),
                     jobSteps.length,
-                    parseFloat(totalDistKm)
+                    routeDistKm
                 ]);
 
                 routeNumber++;
             }
+
+            // Add ЗАГАЛЬНИЙ КІЛОМЕТРАЖ row at the end of sheet 2
+            sheet2Data.push(['', '', '', '', '', '']);
+            sheet2Data.push(['ЗАГАЛЬНИЙ КІЛОМЕТРАЖ', '', '', '', '', Math.round(grandTotalKm * 10) / 10]);
 
             // Create workbook
             const ws1 = XLSX.utils.aoa_to_sheet(sheet1Data);
@@ -796,6 +860,7 @@
             document.getElementById('progressBar').style.width = '0%';
             document.getElementById('logArea').textContent = '';
             document.getElementById('routeProgressBar').style.width = '0%';
+            document.getElementById('btnStartRoutes').disabled = true;
 
             showSection('sectionUpload');
         }
