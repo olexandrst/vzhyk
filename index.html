@@ -3,8 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ВЖИК. Геокодування замовлень</title>
+    <title>ВЖИК. Логістична платформа</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
         :root {
             --met-red: #E3000F;
@@ -18,7 +20,7 @@
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
         body {
-            background-color: var(--met-dark);
+            background: #0a0e17;
             color: var(--text-main);
             display: flex; justify-content: center; align-items: center; min-height: 100vh;
             position: relative; overflow: hidden;
@@ -26,9 +28,32 @@
         body::before {
             content: '';
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 600'%3E%3Cpath d='M350 80 L370 75 L385 80 L390 90 L400 85 L415 90 L420 100 L430 95 L445 100 L455 110 L460 105 L470 110 L465 120 L475 125 L480 135 L490 130 L500 140 L495 150 L505 155 L510 165 L515 160 L525 170 L520 180 L530 185 L535 195 L540 190 L548 198 L545 210 L550 220 L555 215 L560 225 L565 235 L558 240 L562 250 L555 258 L560 268 L552 275 L548 285 L540 280 L535 290 L525 285 L520 295 L510 290 L505 300 L495 295 L490 305 L480 300 L475 310 L465 305 L460 315 L450 310 L445 320 L435 315 L425 325 L420 320 L410 330 L405 325 L395 335 L388 330 L380 340 L372 335 L365 345 L358 340 L350 348 L342 342 L335 350 L328 345 L320 352 L312 348 L305 355 L298 350 L290 358 L282 352 L275 360 L268 355 L260 362 L252 358 L245 365 L238 360 L230 368 L222 362 L215 370 L208 365 L200 372 L192 368 L185 375 L178 370 L170 378 L165 372 L158 380 L150 375 L145 382 L138 378 L132 385 L125 380 L118 388 L112 382 L105 390 L100 385 L95 378 L90 385 L82 380 L78 372 L72 378 L65 372 L60 365 L55 370 L48 362 L45 355 L40 360 L35 352 L30 345 L28 350 L22 342 L20 335 L15 340 L12 332 L10 325 L8 330 L5 322 L3 315 L5 308 L8 300 L5 292 L3 285 L8 278 L12 270 L15 262 L20 255 L25 248 L30 240 L35 232 L40 225 L48 220 L55 215 L60 208 L65 200 L72 195 L78 188 L85 182 L92 178 L100 172 L108 168 L115 162 L122 158 L130 152 L138 148 L145 142 L155 138 L165 132 L175 128 L185 122 L195 118 L205 112 L215 108 L225 105 L235 100 L245 96 L255 92 L265 88 L275 85 L285 82 L295 80 L305 78 L315 76 L325 75 L335 76 L345 78 Z' fill='none' stroke='rgba(255,255,255,0.06)' stroke-width='1.5'/%3E%3Cpath d='M380 340 L375 348 L368 355 L372 362 L378 368 L385 365 L392 370 L398 375 L405 372 L412 378 L418 382 L425 385 L430 380 L435 388 L442 392 L448 395 L455 390 L460 398 L465 402 L460 410 L452 415 L445 420 L438 425 L430 422 L422 428 L415 432 L408 428 L400 435 L392 430 L385 435 L378 432 L370 438 L362 435 L355 440 L348 435 L340 442 L332 438 L325 445 L318 440 L310 448 L302 445 L295 450 L288 445 L282 440 L275 445 L268 440 L262 435 L255 440 L248 435 L242 430 L248 422 L255 418 L262 412 L268 408 L275 402 L282 398 L290 392 L298 388 L305 382 L312 378 L320 372 L328 368 L335 362 L342 358 L348 352 L355 348 L362 342 L368 338 L375 342 Z' fill='none' stroke='rgba(255,255,255,0.04)' stroke-width='1'/%3E%3Cpath d='M480 135 L488 128 L495 122 L502 118 L510 115 L518 112 L525 108 L535 105 L545 102 L555 100 L565 98 L575 96 L585 95 L595 94 L605 95 L615 96 L625 98 L635 102 L645 105 L650 112 L655 118 L658 125 L660 132 L658 140 L655 148 L650 155 L645 162 L638 168 L630 172 L622 178 L615 182 L608 188 L600 192 L592 195 L585 200 L578 205 L570 210 L562 215 L555 220 L548 225' fill='none' stroke='rgba(255,255,255,0.05)' stroke-width='1'/%3E%3Cpath d='M175 128 L165 125 L155 120 L148 115 L140 108 L132 102 L125 98 L118 92 L110 88 L102 85 L95 82 L88 80 L80 78 L72 80 L65 82 L58 85 L52 90 L48 95 L45 102 L42 110 L40 118 L38 125 L40 132 L42 140 L45 148 L48 155 L52 162 L58 168 L65 175 L72 180 L78 185' fill='none' stroke='rgba(255,255,255,0.04)' stroke-width='1'/%3E%3Ccircle cx='350' cy='80' r='2' fill='rgba(227,0,15,0.15)'/%3E%3Ccircle cx='548' cy='198' r='2' fill='rgba(227,0,15,0.15)'/%3E%3Ccircle cx='275' cy='360' r='2' fill='rgba(227,0,15,0.12)'/%3E%3Ccircle cx='660' cy='132' r='2' fill='rgba(227,0,15,0.12)'/%3E%3Ccircle cx='38' cy='125' r='2' fill='rgba(227,0,15,0.1)'/%3E%3C/svg%3E");
-            background-size: cover; background-position: center;
-            opacity: 0.8; z-index: 0; pointer-events: none;
+            background:
+                radial-gradient(1.5px 1.5px at 15% 25%, rgba(255,220,150,0.35) 0%, transparent 100%),
+                radial-gradient(2px 2px at 22% 32%, rgba(255,200,100,0.25) 0%, transparent 100%),
+                radial-gradient(1px 1px at 28% 28%, rgba(255,230,180,0.3) 0%, transparent 100%),
+                radial-gradient(2.5px 2.5px at 35% 38%, rgba(255,210,120,0.4) 0%, transparent 100%),
+                radial-gradient(1.5px 1.5px at 40% 30%, rgba(255,220,150,0.3) 0%, transparent 100%),
+                radial-gradient(2px 2px at 45% 35%, rgba(255,200,100,0.35) 0%, transparent 100%),
+                radial-gradient(3px 3px at 50% 40%, rgba(255,215,130,0.45) 0%, transparent 100%),
+                radial-gradient(2px 2px at 55% 32%, rgba(255,220,150,0.3) 0%, transparent 100%),
+                radial-gradient(1.5px 1.5px at 58% 45%, rgba(255,200,100,0.25) 0%, transparent 100%),
+                radial-gradient(2px 2px at 62% 38%, rgba(255,210,120,0.35) 0%, transparent 100%),
+                radial-gradient(1px 1px at 68% 42%, rgba(255,230,180,0.2) 0%, transparent 100%),
+                radial-gradient(2.5px 2.5px at 72% 35%, rgba(255,200,100,0.3) 0%, transparent 100%),
+                radial-gradient(1.5px 1.5px at 30% 50%, rgba(255,220,150,0.2) 0%, transparent 100%),
+                radial-gradient(2px 2px at 42% 55%, rgba(255,200,100,0.25) 0%, transparent 100%),
+                radial-gradient(1px 1px at 52% 48%, rgba(255,230,180,0.2) 0%, transparent 100%),
+                radial-gradient(1.5px 1.5px at 65% 52%, rgba(255,210,120,0.2) 0%, transparent 100%),
+                radial-gradient(2px 2px at 75% 28%, rgba(255,220,150,0.25) 0%, transparent 100%),
+                radial-gradient(1px 1px at 80% 45%, rgba(255,200,100,0.15) 0%, transparent 100%),
+                radial-gradient(1.5px 1.5px at 18% 42%, rgba(255,210,120,0.2) 0%, transparent 100%),
+                radial-gradient(1px 1px at 25% 55%, rgba(255,220,150,0.15) 0%, transparent 100%),
+                radial-gradient(ellipse 200px 150px at 45% 38%, rgba(255,210,120,0.04) 0%, transparent 70%),
+                radial-gradient(ellipse 180px 120px at 35% 32%, rgba(255,200,100,0.03) 0%, transparent 70%),
+                radial-gradient(ellipse 250px 200px at 55% 42%, rgba(255,215,130,0.03) 0%, transparent 70%),
+                linear-gradient(180deg, #080c15 0%, #0d1220 30%, #111828 50%, #0d1220 70%, #080c15 100%);
+            z-index: 0; pointer-events: none;
         }
 
         .main-card {
@@ -118,6 +143,73 @@
 
         .section { display: none; }
         .section.active { display: block; }
+
+        /* --- Map overlay --- */
+        .map-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1000;
+            background: #0a0e17;
+        }
+        .map-overlay.active { display: flex; }
+        .map-sidebar {
+            width: 360px; min-width: 360px; background: rgba(13,18,32,0.97); color: #e2e8f0;
+            display: flex; flex-direction: column; border-right: 1px solid rgba(255,255,255,0.08);
+            overflow: hidden;
+        }
+        .map-sidebar-header {
+            padding: 20px 20px 16px; border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+        .map-sidebar-header .logo-title { color: white; font-size: 24px; }
+        .map-sidebar-header .logo-subtitle { color: rgba(255,255,255,0.5); margin-bottom: 12px; font-size: 11px; }
+        .route-select {
+            width: 100%; padding: 10px 14px; background: rgba(255,255,255,0.08); color: white;
+            border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; font-size: 14px;
+            font-weight: 600; outline: none; cursor: pointer; appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 5l3 3 3-3' stroke='%23fff' fill='none' stroke-width='1.5'/%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: right 12px center;
+        }
+        .route-select:focus { border-color: var(--met-red); }
+        .route-select option { background: #1a1f35; color: white; }
+        .map-sidebar-stops {
+            flex: 1; overflow-y: auto; padding: 0;
+        }
+        .map-sidebar-stops::-webkit-scrollbar { width: 5px; }
+        .map-sidebar-stops::-webkit-scrollbar-track { background: transparent; }
+        .map-sidebar-stops::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 10px; }
+        .stop-item {
+            padding: 12px 20px; border-bottom: 1px solid rgba(255,255,255,0.05);
+            cursor: pointer; transition: background 0.15s;
+        }
+        .stop-item:hover { background: rgba(255,255,255,0.05); }
+        .stop-item.depot {
+            background: rgba(227,0,15,0.08); border-left: 3px solid var(--met-red);
+        }
+        .stop-num {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 24px; height: 24px; border-radius: 50%; background: var(--met-red);
+            color: white; font-size: 11px; font-weight: 700; margin-right: 10px; flex-shrink: 0;
+        }
+        .stop-num.depot-icon { background: #1a1a1a; font-size: 13px; }
+        .stop-title { font-weight: 600; font-size: 13px; color: #f1f5f9; }
+        .stop-details { font-size: 11px; color: rgba(255,255,255,0.45); margin-top: 4px; line-height: 1.5; }
+        .stop-details span { color: rgba(255,255,255,0.7); font-weight: 600; }
+        .map-sidebar-footer {
+            padding: 14px 20px; border-top: 1px solid rgba(255,255,255,0.08);
+        }
+        .btn-close-map {
+            background: rgba(255,255,255,0.1); color: white; border: none; padding: 10px 20px;
+            border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;
+            width: 100%; transition: background 0.2s;
+        }
+        .btn-close-map:hover { background: rgba(255,255,255,0.18); }
+        #mapContainer { flex: 1; height: 100%; }
+
+        .btn-map {
+            background: #2563EB; color: white; border: none; padding: 16px 24px;
+            border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer;
+            width: 100%; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(37,99,235,0.3);
+            margin-top: 10px;
+        }
+        .btn-map:hover { background: #1d4ed8; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(37,99,235,0.4); }
     </style>
 </head>
 <body>
@@ -205,8 +297,27 @@
             </div>
             <div id="routeResultStatus" class="status-text success" style="margin-top: 16px;"></div>
             <button class="btn-download" onclick="downloadRoutes()">ЗАВАНТАЖИТИ МАРШРУТИ (.XLSX)</button>
+            <button class="btn-map" onclick="showMapView()">ПОКАЗАТИ НА КАРТІ</button>
             <button class="btn-secondary" onclick="resetApp()">ПОЧАТИ ЗНОВУ</button>
         </div>
+    </div>
+
+    <!-- MAP OVERLAY -->
+    <div id="mapOverlay" class="map-overlay">
+        <div class="map-sidebar">
+            <div class="map-sidebar-header">
+                <div class="logo-title">ВЖИК<span>.</span></div>
+                <div class="logo-subtitle">Візуалізація маршрутів</div>
+                <select id="routeSelector" class="route-select" onchange="onRouteSelect()">
+                    <option value="all">Всі маршрути</option>
+                </select>
+            </div>
+            <div class="map-sidebar-stops" id="stopsList"></div>
+            <div class="map-sidebar-footer">
+                <button class="btn-close-map" onclick="closeMapView()">ЗАКРИТИ КАРТУ</button>
+            </div>
+        </div>
+        <div id="mapContainer"></div>
     </div>
 
     <script>
@@ -233,6 +344,10 @@
         let routesWorkbook = null;
         let routesFileName = '';
         let abortProcessing = false;
+        let mapRoutesData = null; // stored after route generation for map view
+        let leafletMap = null;
+        let mapMarkers = [];
+        let mapPolylines = [];
 
         // --- Utility functions ---
         function normText(x) {
@@ -730,6 +845,37 @@
             const routes = vroomData.routes || [];
             const unassigned = vroomData.unassigned || [];
 
+            // Build map data structure
+            mapRoutesData = [];
+            let mapRouteNum = 1;
+            for (const route of routes) {
+                const jobSteps = route.steps.filter(s => s.type === 'job');
+                if (jobSteps.length === 0) continue;
+                const routeLabel = 'MF-' + String(mapRouteNum).padStart(3, '0');
+                // Get vehicle capacity from description
+                const capMatch = (route.description || '').match(/(\d+)м³/);
+                const truckCapacity = capMatch ? parseFloat(capMatch[1]) : 0;
+                let remaining = truckCapacity;
+                const stops = [];
+                for (let si = 0; si < jobSteps.length; si++) {
+                    const step = jobSteps[si];
+                    const info = jobOrderMap[step.id] || jobOrderMap[step.job] || {};
+                    const vol = info.volume || 0;
+                    remaining -= vol;
+                    const distKm = step.distance !== undefined ? (step.distance / 1000) : 0;
+                    stops.push({
+                        seq: si + 1, orderNum: info.orderNum || '', product: info.product || '',
+                        volume: vol, remaining: Math.max(0, Math.round(remaining * 100) / 100),
+                        distKm: Math.round(distKm * 10) / 10,
+                        country: info.country || '', postal: info.postal || '',
+                        city: info.city || '', street: info.street || '',
+                        lon: info.lon, lat: info.lat
+                    });
+                }
+                mapRoutesData.push({ label: routeLabel, truckCapacity, stops });
+                mapRouteNum++;
+            }
+
             // Sheet 1: Detailed routes (with address columns)
             const sheet1Headers = ['Номер маршрута', 'Послідовність вигрузки', 'Номер замовлення', 'Продукція', "Об'єм", 'Країна', 'Індекс', 'Місто', 'Вулиця', 'Кілометраж від початку маршруту'];
             const sheet1Data = [sheet1Headers];
@@ -881,6 +1027,146 @@
         function showSection(id) {
             document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
             document.getElementById(id).classList.add('active');
+        }
+
+        // --- Map view ---
+        const ROUTE_COLORS = [
+            '#E3000F','#2563EB','#059669','#D97706','#7C3AED','#DB2777','#0891B2','#65A30D',
+            '#DC2626','#4F46E5','#0D9488','#EA580C','#9333EA','#E11D48','#0284C7','#84CC16',
+            '#B91C1C','#6366F1','#14B8A6','#F59E0B','#8B5CF6','#F43F5E','#06B6D4','#A3E635'
+        ];
+
+        function showMapView() {
+            if (!mapRoutesData || mapRoutesData.length === 0) return;
+            document.getElementById('mapOverlay').classList.add('active');
+
+            // Populate route selector
+            const sel = document.getElementById('routeSelector');
+            sel.innerHTML = '<option value="all">Всі маршрути</option>';
+            mapRoutesData.forEach((r, i) => {
+                const opt = document.createElement('option');
+                opt.value = i;
+                opt.textContent = `${r.label} (${r.stops.length} точок)`;
+                sel.appendChild(opt);
+            });
+
+            // Init map if needed
+            if (!leafletMap) {
+                leafletMap = L.map('mapContainer', { zoomControl: true });
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                    attribution: '',
+                    maxZoom: 19
+                }).addTo(leafletMap);
+            }
+
+            setTimeout(() => {
+                leafletMap.invalidateSize();
+                renderMapRoutes('all');
+            }, 100);
+        }
+
+        function closeMapView() {
+            document.getElementById('mapOverlay').classList.remove('active');
+        }
+
+        function onRouteSelect() {
+            const val = document.getElementById('routeSelector').value;
+            renderMapRoutes(val);
+        }
+
+        function clearMapLayers() {
+            mapMarkers.forEach(m => leafletMap.removeLayer(m));
+            mapPolylines.forEach(p => leafletMap.removeLayer(p));
+            mapMarkers = [];
+            mapPolylines = [];
+        }
+
+        function renderMapRoutes(selection) {
+            clearMapLayers();
+            const stopsList = document.getElementById('stopsList');
+            stopsList.innerHTML = '';
+
+            const bounds = L.latLngBounds();
+
+            // Always show depot
+            const depotLatLng = L.latLng(DEPOT_LAT, DEPOT_LON);
+            bounds.extend(depotLatLng);
+            const depotIcon = L.divIcon({
+                className: '',
+                html: '<div style="width:20px;height:20px;background:#1a1a1a;border:3px solid var(--met-red);border-radius:50%;box-shadow:0 0 10px rgba(227,0,15,0.5);"></div>',
+                iconSize: [20, 20], iconAnchor: [10, 10]
+            });
+            const depotMarker = L.marker(depotLatLng, { icon: depotIcon, zIndexOffset: 1000 })
+                .bindPopup('<b>ДЕПО — Морган Феніче</b><br>смт. Квасилів, Рівненська обл.')
+                .addTo(leafletMap);
+            mapMarkers.push(depotMarker);
+
+            // Depot in sidebar
+            const depotEl = document.createElement('div');
+            depotEl.className = 'stop-item depot';
+            depotEl.innerHTML = '<div style="display:flex;align-items:center;"><span class="stop-num depot-icon">D</span><div><div class="stop-title">ДЕПО — Морган Феніче</div><div class="stop-details">смт. Квасилів, Рівненська обл., Україна</div></div></div>';
+            depotEl.onclick = () => { leafletMap.setView(depotLatLng, 14); depotMarker.openPopup(); };
+            stopsList.appendChild(depotEl);
+
+            let routesToShow = [];
+            if (selection === 'all') {
+                routesToShow = mapRoutesData.map((r, i) => ({ ...r, colorIdx: i }));
+            } else {
+                const idx = parseInt(selection);
+                routesToShow = [{ ...mapRoutesData[idx], colorIdx: idx }];
+            }
+
+            routesToShow.forEach(route => {
+                const color = ROUTE_COLORS[route.colorIdx % ROUTE_COLORS.length];
+                const lineCoords = [depotLatLng];
+
+                // Route header in sidebar
+                if (selection === 'all') {
+                    const hdr = document.createElement('div');
+                    hdr.style.cssText = 'padding:8px 20px;background:rgba(255,255,255,0.03);border-bottom:1px solid rgba(255,255,255,0.08);';
+                    hdr.innerHTML = `<span style="font-weight:700;font-size:13px;color:${color};">${route.label}</span> <span style="font-size:11px;color:rgba(255,255,255,0.4);">${route.stops.length} точок</span>`;
+                    stopsList.appendChild(hdr);
+                }
+
+                route.stops.forEach(stop => {
+                    if (stop.lon == null || stop.lat == null) return;
+                    const latLng = L.latLng(stop.lat, stop.lon);
+                    bounds.extend(latLng);
+                    lineCoords.push(latLng);
+
+                    // Create numbered marker
+                    const markerIcon = L.divIcon({
+                        className: '',
+                        html: `<div style="width:22px;height:22px;background:${color};border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:10px;font-weight:700;box-shadow:0 2px 6px rgba(0,0,0,0.4);border:2px solid rgba(255,255,255,0.3);">${stop.seq}</div>`,
+                        iconSize: [22, 22], iconAnchor: [11, 11]
+                    });
+
+                    // Aggregate all orders at this delivery point for popup
+                    const popupContent = `<div style="font-family:sans-serif;font-size:12px;"><b>${route.label} / Точка ${stop.seq}</b><br>${stop.city}, ${stop.street}<br><b>Замовлення:</b> ${stop.orderNum}<br><b>Вигрузка:</b> ${stop.volume} м³<br><b>Залишок:</b> ${stop.remaining} м³<br><b>Км від депо:</b> ${stop.distKm}</div>`;
+
+                    const marker = L.marker(latLng, { icon: markerIcon })
+                        .bindPopup(popupContent)
+                        .addTo(leafletMap);
+                    mapMarkers.push(marker);
+
+                    // Sidebar stop item
+                    const el = document.createElement('div');
+                    el.className = 'stop-item';
+                    el.innerHTML = `<div style="display:flex;align-items:flex-start;"><span class="stop-num" style="background:${color};">${stop.seq}</span><div><div class="stop-title">${stop.city}, ${stop.street}</div><div class="stop-details">${stop.orderNum} — ${stop.product}<br>Вигрузка: <span>${stop.volume} м³</span> | Залишок: <span>${stop.remaining} м³</span> | Км: <span>${stop.distKm}</span></div></div></div>`;
+                    el.onclick = () => { leafletMap.setView(latLng, 14); marker.openPopup(); };
+                    stopsList.appendChild(el);
+                });
+
+                // Draw polyline
+                const polyline = L.polyline(lineCoords, {
+                    color: color, weight: 3, opacity: 0.7, dashArray: selection === 'all' ? '6,4' : null
+                }).addTo(leafletMap);
+                mapPolylines.push(polyline);
+            });
+
+            if (bounds.isValid()) {
+                leafletMap.fitBounds(bounds, { padding: [40, 40] });
+            }
         }
 
         // --- Init ---
