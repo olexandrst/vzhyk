@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ВЖИК. Геокодування замовлень</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --met-red: #E3000F;
+            --met-dark: #1A1A1A;
+            --met-light: #F8F9FA;
+            --glass-bg: rgba(255, 255, 255, 0.9);
+            --glass-border: rgba(255, 255, 255, 0.5);
+            --text-main: #2D3748;
+            --text-muted: #718096;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+        body { background-color: var(--met-dark); color: var(--text-main); display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+
+        .main-card {
+            background: var(--glass-bg); padding: 50px 40px; border-radius: 20px;
+            text-align: center; box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+            border: 1px solid var(--glass-border); max-width: 480px; width: 90%;
+            transition: all 0.3s ease;
+        }
+
+        .logo-title { font-size: 36px; font-weight: 800; color: var(--met-dark); margin-bottom: 5px; letter-spacing: -1px; }
+        .logo-title span { color: var(--met-red); }
+        .logo-subtitle { font-size: 13px; color: var(--text-muted); margin-bottom: 30px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+
+        .upload-btn-wrapper { position: relative; overflow: hidden; display: inline-block; width: 100%; margin-bottom: 16px; }
+        .btn-primary {
+            background: var(--met-red); color: white; border: none; padding: 16px 24px;
+            border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer;
+            width: 100%; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(227, 0, 15, 0.3);
+        }
+        .btn-primary:hover { background: #C5000C; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(227, 0, 15, 0.4); }
+        .btn-primary:disabled { background: #ccc; cursor: not-allowed; transform: none; box-shadow: none; }
+        .upload-btn-wrapper input[type=file] { position: absolute; left: 0; top: 0; opacity: 0; cursor: pointer; height: 100%; width: 100%; }
+
+        .btn-secondary {
+            background: var(--met-dark); color: white; border: none; padding: 14px 24px;
+            border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer;
+            width: 100%; transition: all 0.3s ease; margin-top: 10px;
+        }
+        .btn-secondary:hover { background: #333; }
+
+        .btn-download {
+            background: #059669; color: white; border: none; padding: 16px 24px;
+            border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer;
+            width: 100%; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(5, 150, 105, 0.3);
+            margin-top: 10px;
+        }
+        .btn-download:hover { background: #047857; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(5, 150, 105, 0.4); }
+
+        .api-key-input {
+            width: 100%; padding: 14px 16px; border: 1px solid rgba(0,0,0,0.1); border-radius: 12px;
+            font-size: 14px; color: var(--text-main); background: white; margin-bottom: 16px;
+            transition: border-color 0.2s ease; outline: none;
+        }
+        .api-key-input:focus { border-color: var(--met-red); }
+        .api-key-input::placeholder { color: var(--text-muted); }
+
+        .input-label { font-size: 12px; font-weight: 600; color: var(--text-muted); text-align: left; display: block; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        .file-name { font-size: 13px; color: var(--text-main); font-weight: 600; margin-top: -8px; margin-bottom: 12px; word-break: break-all; }
+
+        .status-text { margin-top: 20px; font-size: 14px; color: var(--text-muted); min-height: 20px; }
+        .status-text.error { color: var(--met-red); }
+        .status-text.success { color: #059669; }
+
+        /* Progress bar */
+        .progress-container { width: 100%; background: rgba(0,0,0,0.06); border-radius: 10px; overflow: hidden; margin-top: 16px; height: 12px; display: none; }
+        .progress-bar { height: 100%; background: var(--met-red); border-radius: 10px; transition: width 0.3s ease; width: 0%; }
+        .progress-text { font-size: 13px; color: var(--text-main); font-weight: 600; margin-top: 10px; display: none; }
+
+        /* Log area */
+        .log-area {
+            width: 100%; max-height: 160px; overflow-y: auto; background: rgba(0,0,0,0.04);
+            border-radius: 10px; padding: 12px; margin-top: 12px; text-align: left;
+            font-size: 11px; color: var(--text-muted); line-height: 1.6; display: none;
+            font-family: 'Courier New', monospace;
+        }
+        .log-area::-webkit-scrollbar { width: 6px; }
+        .log-area::-webkit-scrollbar-track { background: transparent; }
+        .log-area::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.2); border-radius: 10px; }
+
+        /* Result stats */
+        .stats-container { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px; }
+        .stat-box { background: white; padding: 16px; border-radius: 12px; border: 1px solid rgba(0,0,0,0.05); text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
+        .stat-value { font-size: 20px; font-weight: 800; color: var(--met-red); margin-bottom: 4px; }
+        .stat-label { font-size: 10px; text-transform: uppercase; font-weight: 600; color: var(--text-muted); letter-spacing: 0.5px; }
+
+        .dict-status { font-size: 12px; color: var(--text-muted); margin-bottom: 16px; }
+        .dict-status.loaded { color: #059669; }
+        .dict-status.error { color: var(--met-red); }
+
+        .section { display: none; }
+        .section.active { display: block; }
+    </style>
+</head>
+<body>
+    <div class="main-card">
+        <div class="logo-title">ВЖИК<span>.</span></div>
+        <div class="logo-subtitle">Геокодування замовлень</div>
+
+        <div id="dictStatus" class="dict-status">Завантаження довідника адрес...</div>
+
+        <!-- SECTION: Upload -->
+        <div id="sectionUpload" class="section active">
+            <div class="upload-btn-wrapper">
+                <button class="btn-primary">ЗАВАНТАЖИТИ ФАЙЛ ЗАМОВЛЕНЬ</button>
+                <input type="file" id="fileInput" accept=".xlsx,.xls" />
+            </div>
+            <div id="fileName" class="file-name" style="display:none;"></div>
+
+            <label class="input-label" for="apiKeyInput">API Key for Geocoding (Google Maps, необов'язково)</label>
+            <input type="text" id="apiKeyInput" class="api-key-input" placeholder="Вставте ключ Google Maps API..." />
+
+            <button id="btnStart" class="btn-primary" disabled onclick="startGeocoding()">РОЗПОЧАТИ ГЕОКОДУВАННЯ</button>
+            <div id="uploadStatus" class="status-text">Завантажте XLSX файл із замовленнями</div>
+        </div>
+
+        <!-- SECTION: Processing -->
+        <div id="sectionProcessing" class="section">
+            <div class="progress-text" id="progressText" style="display:block;"></div>
+            <div class="progress-container" id="progressContainer" style="display:block;">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+            <div class="log-area" id="logArea" style="display:block;"></div>
+            <div id="processingStatus" class="status-text"></div>
+        </div>
+
+        <!-- SECTION: Result -->
+        <div id="sectionResult" class="section">
+            <div class="stats-container">
+                <div class="stat-box">
+                    <div class="stat-value" id="statSuccess">0</div>
+                    <div class="stat-label">Геокодовано</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-value" id="statTotal">0</div>
+                    <div class="stat-label">Всього рядків</div>
+                </div>
+            </div>
+            <div id="resultStatus" class="status-text success" style="margin-top: 16px;"></div>
+            <button class="btn-download" onclick="downloadResult()">ЗАВАНТАЖИТИ РЕЗУЛЬТАТ (.XLSX)</button>
+            <button class="btn-secondary" onclick="resetApp()">ПОЧАТИ ЗНОВУ</button>
+        </div>
+    </div>
+
+    <script>
+        // --- State ---
+        let ordersData = null;       // array of objects from uploaded XLSX
+        let ordersHeaders = null;    // original column headers
+        let addressDict = {};        // key -> {lon, lat, status}
+        let dictLoaded = false;
+        let resultWorkbook = null;
+        let resultFileName = '';
+        let abortProcessing = false;
+
+        // --- Column mapping ---
+        const COL_COUNTRY = 'Заказчик страна';
+        const COL_POSTAL_1 = 'Заказчик.Индекс';
+        const COL_POSTAL_2 = 'Индекс';
+        const COL_CITY = 'Заказчик город';
+        const COL_STREET = 'Заказчик улица';
+
+        // --- Utility functions (ported from add_geo_data.py) ---
+        function normText(x) {
+            if (x === null || x === undefined || x === '') return '';
+            let s = String(x).trim();
+            s = s.replace(/\s+/g, ' ');
+            s = s.replace(/,+$/, '');
+            return s;
+        }
+
+        function makeKey(country, postalCode, city, street) {
+            return [normText(country), normText(postalCode), normText(city), normText(street)]
+                .map(s => s.toLowerCase()).join('|');
+        }
+
+        function getPostalCode(row) {
+            if (row[COL_POSTAL_1] !== undefined && row[COL_POSTAL_1] !== null && row[COL_POSTAL_1] !== '') {
+                return row[COL_POSTAL_1];
+            }
+            return row[COL_POSTAL_2] || '';
+        }
+
+        function buildQ(row) {
+            const street = normText(row[COL_STREET]);
+            const city = normText(row[COL_CITY]);
+            const country = normText(row[COL_COUNTRY]);
+            const postal = normText(getPostalCode(row));
+            const cityPart = (postal + ' ' + city).trim();
+            return [street, cityPart, country].filter(Boolean).join(', ');
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // --- Load addresses.xlsx dictionary ---
+        async function loadDictionary() {
+            const statusEl = document.getElementById('dictStatus');
+            try {
+                const response = await fetch('./addresses.xlsx');
+                if (!response.ok) throw new Error('HTTP ' + response.status);
+                const arrayBuffer = await response.arrayBuffer();
+                const wb = XLSX.read(arrayBuffer, { type: 'array' });
+                const ws = wb.Sheets[wb.SheetNames[0]];
+                const data = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+                let count = 0;
+                for (const row of data) {
+                    const lon = parseFloat(row.lon);
+                    const lat = parseFloat(row.lat);
+                    const status = normText(row.status).toUpperCase();
+                    if (status.startsWith('OK') && !isNaN(lon) && !isNaN(lat)) {
+                        const key = makeKey(row.country, row.postal_code, row.city, row.street);
+                        addressDict[key] = { lon, lat };
+                        count++;
+                    }
+                }
+
+                dictLoaded = true;
+                statusEl.textContent = `Довідник завантажено: ${count} адрес з координатами`;
+                statusEl.className = 'dict-status loaded';
+            } catch (e) {
+                dictLoaded = true; // still allow processing without dict
+                statusEl.textContent = 'Довідник addresses.xlsx не знайдено — буде використано лише API';
+                statusEl.className = 'dict-status error';
+            }
+        }
+
+        // --- File upload handler ---
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    const wb = XLSX.read(event.target.result, { type: 'array' });
+                    const ws = wb.Sheets[wb.SheetNames[0]];
+                    ordersData = XLSX.utils.sheet_to_json(ws, { defval: '' });
+                    ordersHeaders = Object.keys(ordersData[0] || {});
+
+                    document.getElementById('fileName').textContent = file.name;
+                    document.getElementById('fileName').style.display = 'block';
+                    document.getElementById('btnStart').disabled = false;
+                    document.getElementById('uploadStatus').textContent = `Завантажено ${ordersData.length} рядків`;
+                    document.getElementById('uploadStatus').className = 'status-text';
+                } catch (err) {
+                    document.getElementById('uploadStatus').textContent = 'Помилка читання файлу: ' + err.message;
+                    document.getElementById('uploadStatus').className = 'status-text error';
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        // --- Geocoding API calls ---
+        async function nominatimStructured(country, postalCode, city, street) {
+            const params = new URLSearchParams({
+                format: 'jsonv2',
+                limit: '1',
+                street: normText(street),
+                city: normText(city),
+                country: normText(country),
+                postalcode: normText(postalCode)
+            });
+            try {
+                const r = await fetch('https://nominatim.openstreetmap.org/search?' + params.toString(), {
+                    headers: { 'User-Agent': 'VZHYK-Geocoder/1.0' }
+                });
+                if (!r.ok) return { lon: null, lat: null, status: 'HTTP_' + r.status };
+                const data = await r.json();
+                if (!data || data.length === 0) return { lon: null, lat: null, status: 'NOT_FOUND' };
+                const lon = parseFloat(data[0].lon);
+                const lat = parseFloat(data[0].lat);
+                if (isNaN(lon) || isNaN(lat)) return { lon: null, lat: null, status: 'NOT_FOUND' };
+                return { lon, lat, status: 'OK' };
+            } catch (e) {
+                return { lon: null, lat: null, status: 'ERROR' };
+            }
+        }
+
+        async function nominatimQuery(q) {
+            const params = new URLSearchParams({
+                format: 'jsonv2',
+                limit: '1',
+                q: q
+            });
+            try {
+                const r = await fetch('https://nominatim.openstreetmap.org/search?' + params.toString(), {
+                    headers: { 'User-Agent': 'VZHYK-Geocoder/1.0' }
+                });
+                if (!r.ok) return { lon: null, lat: null, status: 'HTTP_' + r.status };
+                const data = await r.json();
+                if (!data || data.length === 0) return { lon: null, lat: null, status: 'NOT_FOUND' };
+                const lon = parseFloat(data[0].lon);
+                const lat = parseFloat(data[0].lat);
+                if (isNaN(lon) || isNaN(lat)) return { lon: null, lat: null, status: 'NOT_FOUND' };
+                return { lon, lat, status: 'OK_Q' };
+            } catch (e) {
+                return { lon: null, lat: null, status: 'ERROR' };
+            }
+        }
+
+        async function googleGeocode(address, apiKey) {
+            const params = new URLSearchParams({ address, key: apiKey });
+            try {
+                const r = await fetch('https://maps.googleapis.com/maps/api/geocode/json?' + params.toString());
+                if (!r.ok) return { lon: null, lat: null, status: 'HTTP_' + r.status };
+                const data = await r.json();
+                if (data.status !== 'OK') return { lon: null, lat: null, status: 'GOOGLE_' + data.status };
+                const results = data.results || [];
+                if (results.length === 0) return { lon: null, lat: null, status: 'GOOGLE_ZERO_RESULTS' };
+                const loc = results[0].geometry?.location;
+                if (!loc || loc.lat == null || loc.lng == null) return { lon: null, lat: null, status: 'GOOGLE_BAD_RESPONSE' };
+                return { lon: loc.lng, lat: loc.lat, status: 'OK_GOOGLE' };
+            } catch (e) {
+                return { lon: null, lat: null, status: 'ERROR' };
+            }
+        }
+
+        // --- Log helper ---
+        function addLog(text) {
+            const logArea = document.getElementById('logArea');
+            logArea.textContent += text + '\n';
+            logArea.scrollTop = logArea.scrollHeight;
+        }
+
+        // --- Main geocoding process ---
+        async function startGeocoding() {
+            if (!ordersData || ordersData.length === 0) return;
+
+            abortProcessing = false;
+
+            // Switch to processing section
+            showSection('sectionProcessing');
+
+            const googleKey = document.getElementById('apiKeyInput').value.trim();
+            const total = ordersData.length;
+            let successCount = 0;
+            let lastNomCall = 0;
+
+            const progressBar = document.getElementById('progressBar');
+            const progressText = document.getElementById('progressText');
+            const logArea = document.getElementById('logArea');
+            logArea.textContent = '';
+
+            async function nomWait() {
+                const now = Date.now();
+                const wait = (lastNomCall + 1100) - now; // 1.1s to be safe
+                if (wait > 0) await sleep(wait);
+                lastNomCall = Date.now();
+            }
+
+            for (let i = 0; i < total; i++) {
+                if (abortProcessing) break;
+
+                const row = ordersData[i];
+                const country = normText(row[COL_COUNTRY]);
+                const postal = normText(getPostalCode(row));
+                const city = normText(row[COL_CITY]);
+                const street = normText(row[COL_STREET]);
+                const key = makeKey(country, postal, city, street);
+                const addressStr = buildQ(row);
+
+                // Update progress
+                const pct = Math.round(((i + 1) / total) * 100);
+                progressBar.style.width = pct + '%';
+                progressText.textContent = `Обробка рядка ${i + 1} з ${total}`;
+
+                // 1. Dictionary lookup
+                if (addressDict[key]) {
+                    row.lon = addressDict[key].lon;
+                    row.lat = addressDict[key].lat;
+                    successCount++;
+                    addLog(`[${i + 1}/${total}] (DICT) ${addressStr} -> ${row.lon},${row.lat}`);
+                    continue;
+                }
+
+                // 2. Nominatim structured
+                let path = [];
+                let lon = null, lat = null, finalStatus = null;
+
+                await nomWait();
+                const s1 = await nominatimStructured(country, postal, city, street);
+                path.push('STRUCT');
+
+                if (s1.status === 'OK') {
+                    lon = s1.lon; lat = s1.lat; finalStatus = 'OK';
+                } else if (s1.status.startsWith('HTTP_')) {
+                    finalStatus = s1.status;
+                } else {
+                    // 3. Nominatim free-text
+                    await nomWait();
+                    const s2 = await nominatimQuery(addressStr);
+                    path.push('Q');
+
+                    if (s2.status === 'OK_Q') {
+                        lon = s2.lon; lat = s2.lat; finalStatus = 'OK_Q';
+                    } else if (s2.status.startsWith('HTTP_')) {
+                        finalStatus = s2.status;
+                    } else {
+                        finalStatus = 'NOT_FOUND';
+                    }
+                }
+
+                // 4. Google fallback
+                if (finalStatus === 'NOT_FOUND' && googleKey && addressStr) {
+                    const s3 = await googleGeocode(addressStr, googleKey);
+                    path.push('GOOGLE');
+                    if (s3.status === 'OK_GOOGLE') {
+                        lon = s3.lon; lat = s3.lat; finalStatus = 'OK_GOOGLE';
+                    } else {
+                        finalStatus = s3.status.startsWith('GOOGLE_') ? s3.status : 'NOT_FOUND';
+                    }
+                }
+
+                if (lon !== null && lat !== null) {
+                    row.lon = lon;
+                    row.lat = lat;
+                    successCount++;
+                    // Also update local dict for future lookups within same session
+                    addressDict[key] = { lon, lat };
+                } else {
+                    row.lon = '';
+                    row.lat = '';
+                }
+
+                addLog(`[${i + 1}/${total}] (${path.join('->')}) ${addressStr} -> ${lon || ''},${lat || ''} status=${finalStatus}`);
+            }
+
+            // Build result
+            buildResult(successCount, total);
+        }
+
+        function buildResult(successCount, total) {
+            // Prepare headers: original + lon, lat
+            const headers = [...(ordersHeaders || [])];
+            if (!headers.includes('lon')) headers.push('lon');
+            if (!headers.includes('lat')) headers.push('lat');
+
+            // Create worksheet
+            const wsData = [headers];
+            for (const row of ordersData) {
+                const r = headers.map(h => row[h] !== undefined ? row[h] : '');
+                wsData.push(r);
+            }
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'Замовлення');
+            resultWorkbook = wb;
+
+            // Generate filename
+            const now = new Date();
+            const dd = String(now.getDate()).padStart(2, '0');
+            const mm = String(now.getMonth() + 1).padStart(2, '0');
+            const yyyy = now.getFullYear();
+            const hh = String(now.getHours()).padStart(2, '0');
+            const min = String(now.getMinutes()).padStart(2, '0');
+            resultFileName = `Замовлення_з_гео_даними_${dd}-${mm}-${yyyy}_${hh}-${min}.xlsx`;
+
+            // Show result section
+            document.getElementById('statSuccess').textContent = successCount;
+            document.getElementById('statTotal').textContent = total;
+            document.getElementById('resultStatus').textContent =
+                `Операція завершена. ${successCount} з ${total} замовлень отримали координати.`;
+
+            showSection('sectionResult');
+        }
+
+        function downloadResult() {
+            if (!resultWorkbook) return;
+            XLSX.writeFile(resultWorkbook, resultFileName);
+        }
+
+        function resetApp() {
+            abortProcessing = true;
+            ordersData = null;
+            ordersHeaders = null;
+            resultWorkbook = null;
+            resultFileName = '';
+
+            document.getElementById('fileInput').value = '';
+            document.getElementById('fileName').style.display = 'none';
+            document.getElementById('btnStart').disabled = true;
+            document.getElementById('uploadStatus').textContent = 'Завантажте XLSX файл із замовленнями';
+            document.getElementById('uploadStatus').className = 'status-text';
+            document.getElementById('apiKeyInput').value = '';
+            document.getElementById('progressBar').style.width = '0%';
+            document.getElementById('logArea').textContent = '';
+
+            showSection('sectionUpload');
+        }
+
+        function showSection(id) {
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        }
+
+        // --- Init ---
+        window.onload = function() {
+            loadDictionary();
+        };
+    </script>
+</body>
+</html>
