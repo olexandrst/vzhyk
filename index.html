@@ -113,6 +113,12 @@
         <div class="logo-subtitle">Геокодування замовлень</div>
 
         <div id="dictStatus" class="dict-status">Завантаження довідника адрес...</div>
+        <div id="dictFallback" style="display:none; margin-bottom: 16px;">
+            <div class="upload-btn-wrapper" style="margin-bottom: 0;">
+                <button class="btn-secondary" style="margin-top: 0; font-size: 13px; padding: 12px;">ОБЕРІТЬ ФАЙЛ ADDRESSES.XLSX</button>
+                <input type="file" id="dictFileInput" accept=".xlsx,.xls" />
+            </div>
+        </div>
 
         <!-- SECTION: Upload -->
         <div id="sectionUpload" class="section active">
@@ -122,8 +128,8 @@
             </div>
             <div id="fileName" class="file-name" style="display:none;"></div>
 
-            <label class="input-label" for="apiKeyInput">API Key for Geocoding (Google Maps, необов'язково)</label>
-            <input type="password" id="apiKeyInput" class="api-key-input" placeholder="Вставте ключ Google Maps API..." autocomplete="off" />
+            <label class="input-label" for="apiKeyInput">Ключ для геокодування (необов'язково)</label>
+            <input type="password" id="apiKeyInput" class="api-key-input" placeholder="Ключ для геокодування" autocomplete="off" />
 
             <button id="btnStart" class="btn-primary" disabled onclick="startGeocoding()">РОЗПОЧАТИ ГЕОКОДУВАННЯ</button>
             <div id="uploadStatus" class="status-text">Завантажте XLSX файл із замовленнями</div>
@@ -252,37 +258,87 @@
         }
 
         // --- Load addresses.xlsx dictionary ---
-        async function loadDictionary() {
+        function parseDictionary(arrayBuffer) {
             const statusEl = document.getElementById('dictStatus');
+            const wb = XLSX.read(arrayBuffer, { type: 'array' });
+            const ws = wb.Sheets[wb.SheetNames[0]];
+            const data = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+            let count = 0;
+            for (const row of data) {
+                const lon = parseFloat(row.lon);
+                const lat = parseFloat(row.lat);
+                const status = normText(row.status).toUpperCase();
+                if (status.startsWith('OK') && !isNaN(lon) && !isNaN(lat)) {
+                    const key = makeKey(row.country, row.postal_code, row.city, row.street);
+                    addressDict[key] = { lon, lat };
+                    count++;
+                }
+            }
+
+            dictLoaded = true;
+            statusEl.textContent = `Довідник завантажено: ${count} адрес з координатами`;
+            statusEl.className = 'dict-status loaded';
+            document.getElementById('dictFallback').style.display = 'none';
+        }
+
+        function showDictFallback() {
+            const statusEl = document.getElementById('dictStatus');
+            dictLoaded = true;
+            statusEl.textContent = 'Завантажте довідник адрес вручну:';
+            statusEl.className = 'dict-status';
+            document.getElementById('dictFallback').style.display = 'block';
+        }
+
+        async function loadDictionary() {
+            // 1. Try fetch (works on web servers / GitHub Pages)
             try {
                 const response = await fetch('./addresses.xlsx');
                 if (!response.ok) throw new Error('HTTP ' + response.status);
                 const arrayBuffer = await response.arrayBuffer();
-                const wb = XLSX.read(arrayBuffer, { type: 'array' });
-                const ws = wb.Sheets[wb.SheetNames[0]];
-                const data = XLSX.utils.sheet_to_json(ws, { defval: '' });
+                parseDictionary(arrayBuffer);
+                return;
+            } catch (e) { /* fetch failed, try XHR */ }
 
-                let count = 0;
-                for (const row of data) {
-                    const lon = parseFloat(row.lon);
-                    const lat = parseFloat(row.lat);
-                    const status = normText(row.status).toUpperCase();
-                    if (status.startsWith('OK') && !isNaN(lon) && !isNaN(lat)) {
-                        const key = makeKey(row.country, row.postal_code, row.city, row.street);
-                        addressDict[key] = { lon, lat };
-                        count++;
-                    }
+            // 2. Try XMLHttpRequest (sometimes works with file://)
+            try {
+                const arrayBuffer = await new Promise((resolve, reject) => {
+                    const xhr = new XMLHttpRequest();
+                    xhr.open('GET', './addresses.xlsx', true);
+                    xhr.responseType = 'arraybuffer';
+                    xhr.onload = () => {
+                        if (xhr.status === 0 || xhr.status === 200) resolve(xhr.response);
+                        else reject(new Error('XHR ' + xhr.status));
+                    };
+                    xhr.onerror = () => reject(new Error('XHR failed'));
+                    xhr.send();
+                });
+                if (arrayBuffer && arrayBuffer.byteLength > 0) {
+                    parseDictionary(arrayBuffer);
+                    return;
                 }
+            } catch (e) { /* XHR also failed */ }
 
-                dictLoaded = true;
-                statusEl.textContent = `Довідник завантажено: ${count} адрес з координатами`;
-                statusEl.className = 'dict-status loaded';
-            } catch (e) {
-                dictLoaded = true;
-                statusEl.textContent = 'Довідник addresses.xlsx не знайдено — буде використано лише API';
-                statusEl.className = 'dict-status error';
-            }
+            // 3. Fallback: show file picker
+            showDictFallback();
         }
+
+        // Dict file picker handler
+        document.getElementById('dictFileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                try {
+                    parseDictionary(new Uint8Array(event.target.result));
+                } catch (err) {
+                    const statusEl = document.getElementById('dictStatus');
+                    statusEl.textContent = 'Помилка читання довідника: ' + err.message;
+                    statusEl.className = 'dict-status error';
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        });
 
         // --- File upload handler ---
         document.getElementById('fileInput').addEventListener('change', function(e) {
