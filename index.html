@@ -147,6 +147,11 @@
             <button id="btnStart" class="btn-primary" disabled onclick="startGeocoding()">РОЗПОЧАТИ ГЕОКОДУВАННЯ</button>
 
             <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(0,0,0,0.08);">
+                <label class="input-label">Типи вантажівок (об'єм, м³)</label>
+                <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+                    <input type="number" id="truckType1" class="api-key-input" value="78" min="1" style="margin-bottom:0; text-align:center; font-weight:700;" />
+                    <input type="number" id="truckType2" class="api-key-input" value="30" min="1" style="margin-bottom:0; text-align:center; font-weight:700;" />
+                </div>
                 <button id="btnStartRoutes" class="btn-route" disabled onclick="startRouteGeneration()">ПЛАНУВАТИ МАРШРУТИ</button>
                 <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">Файл повинен містити колонки lon та lat</div>
             </div>
@@ -630,6 +635,9 @@
                 const orderNum = normText(row[COL_ORDER_NUM]);
                 const product = normText(row[COL_PRODUCT]);
                 const country = normText(row[COL_COUNTRY]);
+                const postal = normText(getPostalCode(row));
+                const city = normText(row[COL_CITY]);
+                const street = normText(row[COL_STREET]);
 
                 jobs.push({
                     id: jobId,
@@ -637,7 +645,7 @@
                     location: [lon, lat],
                     amount: [Math.ceil(volume * 100)]
                 });
-                jobOrderMap[jobId] = { orderNum, product, volume, country, lon, lat };
+                jobOrderMap[jobId] = { orderNum, product, volume, country, postal, city, street, lon, lat };
                 jobId++;
             }
 
@@ -653,25 +661,27 @@
             progressText.textContent = 'Ініціалізація масиву гео матриць...';
             progressBar.style.width = '25%';
 
-            // Build vehicles: 30 x 78m³ + 30 x 30m³
+            // Build vehicles from UI settings
+            const truckCap1 = parseInt(document.getElementById('truckType1').value) || 78;
+            const truckCap2 = parseInt(document.getElementById('truckType2').value) || 30;
             const vehicles = [];
             let vehicleId = 1;
-            for (let i = 0; i < 30; i++) {
+            for (let i = 0; i < 50; i++) {
                 vehicles.push({
                     id: vehicleId++,
-                    description: `Вантажівка 78м³ #${i + 1}`,
+                    description: `Вантажівка ${truckCap1}м³ #${i + 1}`,
                     start: [DEPOT_LON, DEPOT_LAT],
                     end: [DEPOT_LON, DEPOT_LAT],
-                    capacity: [78 * 100]
+                    capacity: [truckCap1 * 100]
                 });
             }
-            for (let i = 0; i < 30; i++) {
+            for (let i = 0; i < 50; i++) {
                 vehicles.push({
                     id: vehicleId++,
-                    description: `Вантажівка 30м³ #${i + 1}`,
+                    description: `Вантажівка ${truckCap2}м³ #${i + 1}`,
                     start: [DEPOT_LON, DEPOT_LAT],
                     end: [DEPOT_LON, DEPOT_LAT],
-                    capacity: [30 * 100]
+                    capacity: [truckCap2 * 100]
                 });
             }
 
@@ -727,8 +737,8 @@
             const sheet1Headers = ['Номер маршрута', 'Послідовність вигрузки', 'Номер замовлення', 'Продукція', "Об'єм", 'Кілометраж від початку маршруту'];
             const sheet1Data = [sheet1Headers];
 
-            // Sheet 2: Route summary (with Фактичний об'єм after Вантажівка)
-            const sheet2Headers = ['Номер маршрута', 'Вантажівка', "Фактичний об'єм", 'Країни', 'К-сть точок', 'Кілометраж'];
+            // Sheet 2: Route summary
+            const sheet2Headers = ['Номер маршрута', 'Вантажівка', "Фактичний об'єм", 'Країна', 'Індекс', 'Місто', 'Вулиця', 'К-сть точок', 'Кілометраж'];
             const sheet2Data = [sheet2Headers];
 
             let routeNumber = 1;
@@ -751,14 +761,16 @@
 
                 // Determine truck type from description
                 const vehicleDesc = route.description || '';
-                let truckType = '';
-                if (vehicleDesc.includes('78')) {
-                    truckType = '78';
-                } else if (vehicleDesc.includes('30')) {
-                    truckType = '30';
-                }
+                // Extract numeric capacity from description like "Вантажівка 78м³ #1"
+                const capMatch = vehicleDesc.match(/(\d+)м³/);
+                const truckType = capMatch ? capMatch[1] : '';
 
-                const countries = new Set();
+                // Collect unique delivery points and route data
+                const uniquePoints = new Set();
+                const routeCountries = new Set();
+                const routePostals = new Set();
+                const routeCities = new Set();
+                const routeStreets = new Set();
                 let seq = 1;
                 let routeActualVolume = 0;
                 let lastStepDist = 0;
@@ -781,7 +793,16 @@
                     ]);
 
                     routeActualVolume += (jobInfo.volume || 0);
-                    if (jobInfo.country) countries.add(jobInfo.country);
+
+                    // Unique point key: country|postal|city|street
+                    const pointKey = [jobInfo.country, jobInfo.postal, jobInfo.city, jobInfo.street]
+                        .map(s => (s || '').toLowerCase()).join('|');
+                    uniquePoints.add(pointKey);
+
+                    if (jobInfo.country) routeCountries.add(jobInfo.country);
+                    if (jobInfo.postal) routePostals.add(jobInfo.postal);
+                    if (jobInfo.city) routeCities.add(jobInfo.city);
+                    if (jobInfo.street) routeStreets.add(jobInfo.street);
                     seq++;
                 }
 
@@ -793,8 +814,11 @@
                     routeLabel,
                     truckType,
                     Math.round(routeActualVolume * 100) / 100,
-                    Array.from(countries).join(', '),
-                    jobSteps.length,
+                    Array.from(routeCountries).join(', '),
+                    Array.from(routePostals).join(', '),
+                    Array.from(routeCities).join(', '),
+                    Array.from(routeStreets).join(', '),
+                    uniquePoints.size,
                     routeDistKm
                 ]);
 
@@ -802,8 +826,8 @@
             }
 
             // Add ЗАГАЛЬНИЙ КІЛОМЕТРАЖ row at the end of sheet 2
-            sheet2Data.push(['', '', '', '', '', '']);
-            sheet2Data.push(['ЗАГАЛЬНИЙ КІЛОМЕТРАЖ', '', '', '', '', Math.round(grandTotalKm * 10) / 10]);
+            sheet2Data.push(['', '', '', '', '', '', '', '', '']);
+            sheet2Data.push(['ЗАГАЛЬНИЙ КІЛОМЕТРАЖ', '', '', '', '', '', '', '', Math.round(grandTotalKm * 10) / 10]);
 
             // Create workbook
             const ws1 = XLSX.utils.aoa_to_sheet(sheet1Data);
