@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ВЖИК. Версія 1.6 | Флот-менеджер</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+
+        :root {
+            --met-red: #E3000F;
+            --met-dark: #1A1A1A;
+            --met-light: #F8F9FA;
+            --glass-bg: rgba(255, 255, 255, 0.9);
+            --glass-border: rgba(255, 255, 255, 0.5);
+            --text-main: #2D3748;
+            --text-muted: #718096;
+            --wait-color: #D97706;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+        body { background-color: var(--met-dark); color: var(--text-main); overflow: hidden; }
+        #map { width: 100vw; height: 100vh; position: absolute; z-index: 1; }
+        
+        /* ОНОВЛЕНО: Стартовий екран із видимою картою */
+        #startOverlay {
+            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
+            /* Зменшено непрозорість та розмиття, щоб було видно географію */
+            background: rgba(10, 10, 10, 0.4); 
+            backdrop-filter: blur(3px); 
+            -webkit-backdrop-filter: blur(3px);
+            display: flex; justify-content: center; align-items: center; z-index: 2000;
+            transition: opacity 0.8s ease, visibility 0.8s ease;
+        }
+        #startOverlay.hidden { opacity: 0; visibility: hidden; }
+
+        .upload-card {
+            background: var(--glass-bg); padding: 50px 40px; border-radius: 20px;
+            text-align: center; box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+            border: 1px solid var(--glass-border); max-width: 400px; width: 90%;
+        }
+
+        .logo-title { font-size: 36px; font-weight: 800; color: var(--met-dark); margin-bottom: 5px; letter-spacing: -1px;}
+        .logo-title span { color: var(--met-red); }
+        .logo-subtitle { font-size: 13px; color: var(--text-muted); margin-bottom: 30px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;}
+
+        .upload-btn-wrapper { position: relative; overflow: hidden; display: inline-block; width: 100%; }
+        .btn-primary {
+            background: var(--met-red); color: white; border: none; padding: 16px 24px;
+            border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer;
+            width: 100%; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(227, 0, 15, 0.3);
+        }
+        .btn-primary:hover { background: #C5000C; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(227, 0, 15, 0.4); }
+        .upload-btn-wrapper input[type=file] { position: absolute; left: 0; top: 0; opacity: 0; cursor: pointer; height: 100%; width: 100%;}
+        
+        #overlayStatus { margin-top: 20px; font-size: 14px; color: var(--text-muted); min-height: 20px;}
+
+        .control-panel {
+            position: absolute; top: 20px; left: 20px; width: 380px; z-index: 1000;
+            background: var(--glass-bg); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border); border-radius: 16px; padding: 24px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15); transition: transform 0.5s ease, opacity 0.5s ease;
+            transform: translateX(-150%); opacity: 0; max-height: 90vh; overflow-y: auto;
+        }
+        .control-panel.active { transform: translateX(0); opacity: 1; }
+        
+        .control-panel::-webkit-scrollbar { width: 6px; }
+        .control-panel::-webkit-scrollbar-track { background: transparent; }
+        .control-panel::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.2); border-radius: 10px; }
+        
+        .panel-header { margin-bottom: 20px; border-bottom: 1px solid rgba(0,0,0,0.08); padding-bottom: 15px; display: flex; justify-content: space-between; align-items: center;}
+        .panel-header h2 { font-size: 20px; font-weight: 800; color: var(--met-dark); }
+        .panel-header h2 span { color: var(--met-red); }
+        
+        .route-tabs { display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; }
+        .tab-btn {
+            padding: 12px 10px; font-size: 13px; font-weight: 600; border: 1px solid rgba(0,0,0,0.1); border-radius: 8px;
+            cursor: pointer; background: white; color: var(--text-muted); transition: all 0.2s ease; text-align: left;
+            display: flex; justify-content: flex-start; align-items: center;
+        }
+        .tab-btn:hover { background: #f0f0f0; }
+        .tab-btn.active { background: var(--met-dark); color: white; border-color: var(--met-dark); box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .color-indicator { width: 12px; height: 12px; border-radius: 50%; display: inline-block; margin-right: 10px; flex-shrink: 0;}
+        
+        .stats-container { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 15px;}
+        .stat-box { background: white; padding: 16px; border-radius: 12px; border: 1px solid rgba(0,0,0,0.05); text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.02);}
+        .stat-value { font-size: 20px; font-weight: 800; color: var(--met-red); margin-bottom: 4px;}
+        .stat-label { font-size: 10px; text-transform: uppercase; font-weight: 600; color: var(--text-muted); letter-spacing: 0.5px;}
+        
+        #itineraryPanel { display: none; margin-top: 15px; border-top: 1px solid rgba(0,0,0,0.1); padding-top: 15px; }
+        .itinerary-header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .itinerary-title { font-size: 14px; font-weight: 800; color: var(--text-main); text-transform: uppercase; letter-spacing: 0.5px;}
+        
+        .btn-pdf {
+            background: var(--met-dark); color: white; border: none; padding: 6px 12px; border-radius: 6px;
+            font-size: 11px; font-weight: 600; cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 5px;
+        }
+        .btn-pdf:hover { background: var(--met-red); }
+
+        .step-card {
+            background: white; border-radius: 10px; padding: 14px; margin-bottom: 10px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.05);
+        }
+        .step-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; border-bottom: 1px dashed rgba(0,0,0,0.1); padding-bottom: 10px;}
+        .step-title { font-weight: 700; font-size: 13px; color: var(--met-dark); }
+        
+        .step-icon-mini { 
+            width: 26px; height: 26px; border-radius: 50%; font-size: 12px; font-weight: bold;
+            display: flex; justify-content: center; align-items: center; flex-shrink: 0;
+            background: white; border: 2px solid var(--met-dark); color: var(--met-dark);
+        }
+        .step-icon-mini.job { color: white; border: none; }
+        .step-icon-mini.break { background: #FFC107; border: 2px solid white; color: var(--met-dark); font-size: 14px; box-shadow: 0 2px 5px rgba(0,0,0,0.2);}
+        .step-icon-mini.depot { border-radius: 6px; }
+
+        .step-body { font-size: 12px; color: var(--text-muted); display: flex; flex-direction: column; gap: 6px;}
+        .step-row { display: flex; justify-content: space-between; align-items: center; }
+        .step-row b { color: var(--text-main); font-weight: 700; }
+        .cargo-highlight { color: var(--met-red); background: rgba(227,0,15,0.1); padding: 2px 6px; border-radius: 4px; }
+        .wait-highlight { color: var(--wait-color); font-weight: bold; background: rgba(217,119,6,0.1); padding: 2px 6px; border-radius: 4px; }
+
+        .custom-marker { border-radius: 50%; color: white; font-weight: 600; text-align: center; line-height: 28px; border: 2px solid white; box-shadow: 0 3px 8px rgba(0,0,0,0.3); font-size: 13px;}
+        .depot-marker { background: white; border: 3px solid var(--met-dark); border-radius: 8px; color: var(--met-dark); font-weight: 800; text-align: center; line-height: 24px; box-shadow: 0 4px 10px rgba(0,0,0,0.2);}
+        .break-marker { background: #FFC107; border: 2px solid white; border-radius: 50%; color: var(--met-dark); font-size: 14px; text-align: center; line-height: 26px; box-shadow: 0 3px 8px rgba(0,0,0,0.3);}
+        
+        .leaflet-popup-content b { color: var(--met-dark); font-size: 14px;}
+        #unassignedAlert { background: #FFF5F5; border: 1px solid #FEB2B2; color: #C53030; padding: 12px; border-radius: 8px; font-size: 12px; margin-bottom: 15px; display: none; font-weight: 600; line-height: 1.4;}
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    
+    <div id="startOverlay">
+        <div class="upload-card">
+            <div class="logo-title">ВЖИК<span>.</span></div>
+            <div class="logo-subtitle">Логістичний оптимізатор 1.6</div>
+            
+            <div class="upload-btn-wrapper">
+                <button class="btn-primary">ВІДКРИТИ PAYLOAD.JSON</button>
+                <input type="file" id="fileInput" accept=".json" />
+            </div>
+            
+            <div id="overlayStatus">Завантажте файл для розрахунку</div>
+        </div>
+    </div>
+
+    <div class="control-panel" id="mainPanel">
+        <div class="panel-header">
+            <h2>ВЖИК<span>.</span></h2>
+            <button onclick="resetApp()" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size: 12px; font-weight: 600;">✕ ЗАКРИТИ</button>
+        </div>
+        
+        <div id="unassignedAlert"></div>
+
+        <div class="stats-container" id="statsPanel">
+            <div class="stat-box">
+                <div class="stat-value" id="distVal">0 км</div>
+                <div class="stat-label">Дистанція</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="timeVal">0 год</div>
+                <div class="stat-label">Час зміни</div>
+            </div>
+        </div>
+
+        <div class="route-tabs" id="routeTabs"></div>
+        
+        <div id="itineraryPanel">
+            <div class="itinerary-header-row">
+                <div class="itinerary-title">Маршрутний лист</div>
+                <button class="btn-pdf" onclick="exportToPDF()">📥 PDF</button>
+            </div>
+            <div id="itineraryContent"></div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        const VROOM_API_URL = 'http://192.168.50.144:3000/';
+        let map, darkLayer, lightLayer;
+        let routeData = []; 
+        let routeLayerGroups = []; 
+        let currentColors = []; 
+        let activeVehicleName = ""; 
+        
+        const routeColors = ['#E3000F', '#0056B3', '#059669', '#D97706', '#7C3AED', '#0891B2'];
+
+        function initMap() {
+            map = L.map('map', { zoomControl: false }).setView([50.4501, 30.5234], 5);
+            L.control.zoom({ position: 'bottomright' }).addTo(map);
+            
+            darkLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 20 }).addTo(map);
+            lightLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom: 20 });
+        }
+
+        function decodePolyline(str, precision = 5) {
+            let index = 0, lat = 0, lng = 0, coordinates = [], shift = 0, result = 0, byte = null;
+            let factor = Math.pow(10, precision);
+            while (index < str.length) {
+                byte = null; shift = 0; result = 0;
+                do { byte = str.charCodeAt(index++) - 63; result |= (byte & 0x1f) << shift; shift += 5; } while (byte >= 0x20);
+                lat += ((result & 1) ? ~(result >> 1) : (result >> 1));
+                shift = result = 0;
+                do { byte = str.charCodeAt(index++) - 63; result |= (byte & 0x1f) << shift; shift += 5; } while (byte >= 0x20);
+                lng += ((result & 1) ? ~(result >> 1) : (result >> 1));
+                coordinates.push([lat / factor, lng / factor]);
+            }
+            return coordinates;
+        }
+
+        function formatTime(seconds) {
+            const d = Math.floor(seconds / 86400);
+            const h = Math.floor((seconds % 86400) / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            if (d > 0) return `${d}д ${h}г ${m}хв`;
+            return `${h}г ${m}хв`;
+        }
+
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async function(event) {
+                try {
+                    const payload = JSON.parse(event.target.result);
+                    if (!payload.options) payload.options = {};
+                    payload.options.g = true;
+                    
+                    document.getElementById('overlayStatus').innerText = "Оптимізація маршрутів...";
+                    document.getElementById('overlayStatus').style.color = "var(--text-main)";
+                    
+                    sendToVroom(payload);
+                } catch (err) { 
+                    showError("Невірний формат JSON файлу."); 
+                }
+            };
+            reader.readAsText(file);
+        });
+
+        async function sendToVroom(payload) {
+            try {
+                const response = await fetch(VROOM_API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                const data = await response.json();
+                
+                if (data.code !== 0) throw new Error(data.error);
+                processVroomResponse(data);
+                
+            } catch (err) { 
+                showError("Помилка API: " + err.message); 
+            }
+        }
+
+        function processVroomResponse(data) {
+            if (map.hasLayer(darkLayer)) { map.removeLayer(darkLayer); lightLayer.addTo(map); }
+            
+            document.getElementById('startOverlay').classList.add('hidden');
+            document.getElementById('mainPanel').classList.add('active');
+            
+            routeLayerGroups.forEach(group => map.removeLayer(group));
+            routeLayerGroups = [];
+            currentColors = [];
+            routeData = data.routes;
+            
+            document.getElementById('routeTabs').innerHTML = '';
+            document.getElementById('unassignedAlert').style.display = 'none';
+            document.getElementById('itineraryPanel').style.display = 'none';
+            
+            let totalDist = 0; let maxTime = 0;
+
+            let unassignedCount = data.unassigned ? data.unassigned.length : 0;
+            if (unassignedCount > 0) {
+                let alertBox = document.getElementById('unassignedAlert');
+                alertBox.innerHTML = `⚠️ <b>${unassignedCount} точок відхилено!</b><br>Ймовірна причина: перевищення ліміту вантажу, часу або географічний розрив карти.`;
+                alertBox.style.display = 'block';
+                
+                let unassignedLayer = L.layerGroup();
+                data.unassigned.forEach(job => {
+                    if (job.location) {
+                        let icon = L.divIcon({ className: 'custom-marker', html: `<div style="background-color:black; width:100%; height:100%; border-radius:50%; line-height:28px;">✖</div>`, iconSize: [30, 30], iconAnchor: [15, 15] });
+                        L.marker([job.location[1], job.location[0]], { icon: icon }).bindPopup(`<b>НЕПРИЗНАЧЕНА ТОЧКА</b><br>Відхилено алгоритмом.`).addTo(unassignedLayer);
+                    }
+                });
+                routeLayerGroups.push(unassignedLayer);
+                unassignedLayer.addTo(map);
+            }
+
+            createTab("Всі активні маршрути", -1, 'transparent', "");
+
+            routeData.forEach((route, index) => {
+                let routeColor = routeColors[index % routeColors.length];
+                currentColors.push(routeColor);
+                
+                let layerGroup = L.layerGroup();
+                let vehicleName = route.description || `ТЗ #${route.vehicle}`;
+                
+                totalDist += route.distance || 0;
+                if (route.duration > maxTime) maxTime = route.duration;
+
+                if (route.geometry) {
+                    let path = decodePolyline(route.geometry);
+                    L.polyline(path, { color: routeColor, weight: 6, opacity: 0.85, lineJoin: 'round' }).addTo(layerGroup);
+                }
+
+                let jobCounter = 1;
+                route.steps.forEach(step => {
+                    if (!step.location) return; 
+
+                    let iconHtml = '', className = '', title = '';
+                    let stepDistKm = step.distance !== undefined ? (step.distance / 1000).toFixed(1) : "0";
+
+                    if (step.type === 'start' || step.type === 'end') {
+                        iconHtml = 'Д'; className = 'depot-marker'; title = 'ДЕПО';
+                    } else if (step.type === 'job') {
+                        step.visualIndex = jobCounter++; 
+                        iconHtml = step.visualIndex; 
+                        className = 'custom-marker'; 
+                        title = step.description || `Точка доставки`;
+                    } else if (step.type === 'break') {
+                        iconHtml = '☕'; className = 'break-marker'; title = 'ВІДПОЧИНОК';
+                    }
+
+                    if (iconHtml) {
+                        let icon = L.divIcon({ className: className, html: iconHtml, iconSize: [30, 30], iconAnchor: [15, 15] });
+                        if (step.type === 'job') icon.options.html = `<div style="background-color:${routeColor}; width:100%; height:100%; border-radius:50%; line-height:28px;">${iconHtml}</div>`;
+                        
+                        let popup = `<b>${title}</b><br><br>🚚 Авто: <b>${vehicleName}</b><br>⏱ Прибуття: <b>${formatTime(step.arrival)}</b><br>📏 Відстань: <b>${stepDistKm} км</b>`;
+                        L.marker([step.location[1], step.location[0]], { icon: icon }).bindPopup(popup).addTo(layerGroup);
+                    }
+                });
+
+                routeLayerGroups.push(layerGroup);
+                layerGroup.addTo(map); 
+                
+                createTab(vehicleName, index, routeColor, vehicleName);
+            });
+
+            updateStats(totalDist, maxTime);
+            fitAllBounds();
+        }
+
+        function createTab(name, index, color, vehicleName) {
+            let btn = document.createElement('button');
+            btn.className = 'tab-btn' + (index === -1 ? ' active' : '');
+            
+            let htmlContent = '';
+            if (color !== 'transparent') {
+                htmlContent += `<span class="color-indicator" style="background-color: ${color};"></span>`;
+            } else {
+                htmlContent += `<span class="color-indicator" style="background-color: transparent; border: 1px dashed #ccc;"></span>`;
+            }
+            htmlContent += `<span>${name}</span>`;
+            
+            btn.innerHTML = htmlContent;
+            btn.onclick = () => switchRoute(index, btn, vehicleName);
+            document.getElementById('routeTabs').appendChild(btn);
+        }
+
+        function switchRoute(index, btnElement, vehicleName) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            btnElement.classList.add('active');
+
+            const itineraryPanel = document.getElementById('itineraryPanel');
+
+            if (index === -1) {
+                itineraryPanel.style.display = 'none';
+                activeVehicleName = "";
+                
+                routeLayerGroups.forEach(g => { if(!map.hasLayer(g)) map.addLayer(g); });
+                let totalDist = routeData.reduce((sum, r) => sum + (r.distance || 0), 0);
+                let maxTime = Math.max(...routeData.map(r => r.duration));
+                updateStats(totalDist, maxTime);
+                fitAllBounds();
+            } else {
+                activeVehicleName = vehicleName;
+                routeLayerGroups.forEach((g, i) => {
+                    if (i === index) map.addLayer(g);
+                    else map.removeLayer(g);
+                });
+                updateStats(routeData[index].distance, routeData[index].duration);
+                let groupBounds = L.featureGroup(routeLayerGroups[index].getLayers()).getBounds();
+                map.fitBounds(groupBounds, { padding: [50, 50] });
+                
+                generateItinerary(routeData[index], currentColors[index]);
+                itineraryPanel.style.display = 'block';
+            }
+        }
+
+        function generateItinerary(route, color) {
+            let html = '';
+            let currentLoad = (route.steps[0] && route.steps[0].load) ? route.steps[0].load[0] : 0;
+
+            route.steps.forEach(step => {
+                let iconClass = 'step-icon-mini';
+                let iconHtml = '';
+                let title = '';
+                
+                let arrivalStr = formatTime(step.arrival);
+                let departureTime = step.arrival + (step.service || 0) + (step.waiting_time || 0);
+                let departureStr = formatTime(departureTime);
+                let distStr = step.distance !== undefined ? (step.distance / 1000).toFixed(1) + ' км' : '0 км';
+                
+                let cargoHtml = '';
+                let newLoad = step.load ? step.load[0] : 0;
+
+                if (step.type === 'start') {
+                    iconHtml = 'Д'; iconClass += ' depot'; title = 'ДЕПО (Старт)';
+                    cargoHtml = `Завантажено: <b>${newLoad} од.</b>`;
+                } 
+                else if (step.type === 'end') {
+                    iconHtml = 'Д'; iconClass += ' depot'; title = 'ДЕПО (Повернення)';
+                    cargoHtml = `Залишок в кузові: <b>${newLoad} од.</b>`;
+                } 
+                else if (step.type === 'break') {
+                    iconHtml = '☕'; iconClass += ' break'; title = step.description || 'Обов\'язковий відпочинок';
+                    cargoHtml = `Тривалість: <b>${formatTime(step.service || 0)}</b>`;
+                } 
+                else if (step.type === 'job') {
+                    iconHtml = step.visualIndex || '-'; iconClass += ' job'; title = step.description || 'Точка доставки';
+                    let dropped = currentLoad - newLoad;
+                    if (dropped > 0) {
+                        cargoHtml = `Вивантажено: <span class="cargo-highlight">${dropped} од.</span> (Залишок: ${newLoad})`;
+                    } else {
+                        cargoHtml = `Залишок: <b>${newLoad} од.</b>`;
+                    }
+                }
+
+                currentLoad = newLoad; 
+
+                // Формуємо вміст картки
+                let bodyHtml = '';
+
+                if (step.type === 'start') {
+                    bodyHtml += `<div class="step-row"><span>⬆ Час виїзду:</span> <b>${departureStr}</b></div>`;
+                    if (cargoHtml) bodyHtml += `<div class="step-row" style="margin-top:4px;"><span>📦 Вантаж:</span> <span>${cargoHtml}</span></div>`;
+                } 
+                else if (step.type === 'end') {
+                    bodyHtml += `<div class="step-row"><span>⬇ Прибуття:</span> <b>${arrivalStr}</b></div>`;
+                    bodyHtml += `<div class="step-row"><span>📏 Дистанція рейсу:</span> <b>${distStr}</b></div>`;
+                    if (cargoHtml) bodyHtml += `<div class="step-row" style="margin-top:4px;"><span>📦 Вантаж:</span> <span>${cargoHtml}</span></div>`;
+                }
+                else {
+                    bodyHtml += `<div class="step-row"><span>⬇ Прибуття:</span> <b>${arrivalStr}</b></div>`;
+                    
+                    if (step.waiting_time > 0) {
+                        bodyHtml += `<div class="step-row" style="margin: 4px 0;"><span>⏳ Очікування вікна:</span> <span class="wait-highlight">${formatTime(step.waiting_time)}</span></div>`;
+                    }
+
+                    if (step.service > 0 || step.type === 'break') {
+                        bodyHtml += `<div class="step-row"><span>⬆ Відбуття:</span> <b>${departureStr}</b></div>`;
+                    }
+                    bodyHtml += `<div class="step-row"><span>📏 Дистанція від старту:</span> <b>${distStr}</b></div>`;
+                    if (cargoHtml) bodyHtml += `<div class="step-row" style="margin-top:4px;"><span>📦 ${step.type === 'break' ? 'Деталі:' : 'Вантаж:'}</span> <span>${cargoHtml}</span></div>`;
+                }
+
+                html += `
+                <div class="step-card" style="border-left: 4px solid ${step.type === 'job' ? color : (step.type === 'break' ? '#FFC107' : '#1A1A1A')}; page-break-inside: avoid;">
+                    <div class="step-header">
+                        <div class="${iconClass}" ${step.type === 'job' ? `style="background-color:${color};"` : ''}>${iconHtml}</div>
+                        <div class="step-title">${title}</div>
+                    </div>
+                    <div class="step-body">
+                        ${bodyHtml}
+                    </div>
+                </div>`;
+            });
+
+            document.getElementById('itineraryContent').innerHTML = html;
+        }
+
+        function exportToPDF() {
+            let printArea = document.createElement('div');
+            printArea.style.padding = '20px';
+            printArea.style.fontFamily = 'Inter, sans-serif';
+            printArea.style.color = '#1A1A1A';
+            printArea.style.backgroundColor = '#F8F9FA';
+
+            let dateStr = new Date().toLocaleDateString('uk-UA');
+            
+            printArea.innerHTML = `
+                <div style="border-bottom: 2px solid #E3000F; padding-bottom: 15px; margin-bottom: 25px;">
+                    <h1 style="margin:0; font-size: 26px; font-weight: 800; color: #1A1A1A;">ВЖИК<span style="color: #E3000F;">.</span> Маршрутний лист</h1>
+                    <p style="margin: 8px 0 0 0; color: #718096; font-size: 13px;">Дата формування: ${dateStr}</p>
+                    <h2 style="margin: 15px 0 0 0; font-size: 18px; color: #1A1A1A;">Транспорт: <b>${activeVehicleName}</b></h2>
+                </div>
+                ${document.getElementById('itineraryContent').innerHTML}
+            `;
+
+            const opt = {
+                margin:       10,
+                filename:     `Marshruty_VZYK_${activeVehicleName.replace(/[^a-zа-я0-9]/gi, '_')}.pdf`,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true, backgroundColor: '#F8F9FA' },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            const btn = document.querySelector('.btn-pdf');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '⏳ Формування...';
+            btn.style.pointerEvents = 'none';
+
+            html2pdf().set(opt).from(printArea).save().then(() => {
+                btn.innerHTML = '✅ Збережено';
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.style.pointerEvents = 'auto';
+                }, 3000);
+            });
+        }
+
+        function updateStats(dist, time) {
+            document.getElementById('distVal').innerText = dist ? (dist / 1000).toFixed(1) + " км" : "N/A";
+            document.getElementById('timeVal').innerText = formatTime(time);
+        }
+
+        function fitAllBounds() {
+            let allLayers = [];
+            routeLayerGroups.forEach(g => allLayers = allLayers.concat(g.getLayers()));
+            if (allLayers.length > 0) map.fitBounds(L.featureGroup(allLayers).getBounds(), { padding: [80, 80] });
+        }
+
+        function showError(msg) {
+            document.getElementById('overlayStatus').innerText = msg;
+            document.getElementById('overlayStatus').style.color = "var(--met-red)";
+        }
+
+        function resetApp() {
+            document.getElementById('mainPanel').classList.remove('active');
+            setTimeout(() => {
+                document.getElementById('startOverlay').classList.remove('hidden');
+                document.getElementById('overlayStatus').innerText = "Завантажте файл для розрахунку";
+                document.getElementById('overlayStatus').style.color = "var(--text-muted)";
+                document.getElementById('fileInput').value = ""; 
+                
+                routeLayerGroups.forEach(group => map.removeLayer(group));
+                if (map.hasLayer(lightLayer)) map.removeLayer(lightLayer);
+                darkLayer.addTo(map);
+                map.setView([50.4501, 30.5234], 5);
+            }, 300);
+        }
+
+        window.onload = initMap;
+    </script>
+</body>
+</html>
+

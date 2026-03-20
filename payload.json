@@ -1,0 +1,102 @@
+{
+  "options": {
+    "g": true
+  },
+  "vehicles": [
+    {
+      "id": 1,
+      "description": "Тягач 20т (AE0001)",
+      "profile": "car",
+      "start": [26.2516, 50.6199],
+      "end": [26.2516, 50.6199],
+      "capacity": [20],
+      "breaks": [
+        { "id": 1, "description": "Сон (День 1)", "service": 39600, "time_windows": [[28800, 72000]] },
+        { "id": 2, "description": "Сон (День 2)", "service": 39600, "time_windows": [[115200, 158400]] },
+        { "id": 3, "description": "Сон (День 3)", "service": 39600, "time_windows": [[201600, 244800]] },
+        { "id": 4, "description": "Сон (День 4)", "service": 39600, "time_windows": [[288000, 331200]] },
+        { "id": 5, "description": "Сон (День 5)", "service": 39600, "time_windows": [[374400, 417600]] }
+      ]
+    },
+    {
+      "id": 2,
+      "description": "Вантажівка 12т (AE0002)",
+      "profile": "car",
+      "start": [26.2516, 50.6199],
+      "end": [26.2516, 50.6199],
+      "capacity": [12],
+      "breaks": [
+        { "id": 1, "description": "Сон (День 1)", "service": 39600, "time_windows": [[28800, 72000]] },
+        { "id": 2, "description": "Сон (День 2)", "service": 39600, "time_windows": [[115200, 158400]] },
+        { "id": 3, "description": "Сон (День 3)", "service": 39600, "time_windows": [[201600, 244800]] },
+        { "id": 4, "description": "Сон (День 4)", "service": 39600, "time_windows": [[288000, 331200]] },
+        { "id": 5, "description": "Сон (День 5)", "service": 39600, "time_windows": [[374400, 417600]] }
+      ]
+    },
+    {
+      "id": 3,
+      "description": "Фургон 6т (AE0003)",
+      "profile": "car",
+      "start": [26.2516, 50.6199],
+      "end": [26.2516, 50.6199],
+      "capacity": [6],
+      "breaks": [
+        { "id": 1, "description": "Сон (День 1)", "service": 39600, "time_windows": [[28800, 72000]] },
+        { "id": 2, "description": "Сон (День 2)", "service": 39600, "time_windows": [[115200, 158400]] },
+        { "id": 3, "description": "Сон (День 3)", "service": 39600, "time_windows": [[201600, 244800]] },
+        { "id": 4, "description": "Сон (День 4)", "service": 39600, "time_windows": [[288000, 331200]] },
+        { "id": 5, "description": "Сон (День 5)", "service": 39600, "time_windows": [[374400, 417600]] }
+      ]
+    }
+  ],
+  "jobs": [
+    {
+      "id": 1,
+      "description": "Vienna (Вікно: 11:00-14:00)",
+      "location": [16.3738, 48.2082],
+      "service": 7200,
+      "delivery": [6],
+      "time_windows": [
+        [39600, 50400],
+        [126000, 136800],
+        [212400, 223200],
+        [298800, 309600],
+        [385200, 396000],
+        [471600, 482400],
+        [558000, 568800]
+      ]
+    },
+    {
+      "id": 2,
+      "description": "Prague (Вікно: 09:00-12:00)",
+      "location": [14.4378, 50.0755],
+      "service": 7200,
+      "delivery": [6],
+      "time_windows": [
+        [32400, 43200],
+        [118800, 129600],
+        [205200, 216000],
+        [291600, 302400],
+        [378000, 388800],
+        [464400, 475200],
+        [550800, 561600]
+      ]
+    },
+    {
+      "id": 3,
+      "description": "Berlin (Вікно: 14:00-17:00)",
+      "location": [13.4050, 52.5200],
+      "service": 7200,
+      "delivery": [6],
+      "time_windows": [
+        [50400, 61200],
+        [136800, 147600],
+        [223200, 234000],
+        [309600, 320400],
+        [396000, 406800],
+        [482400, 493200],
+        [568800, 579600]
+      ]
+    }
+  ]
+}
