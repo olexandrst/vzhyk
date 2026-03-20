@@ -872,7 +872,7 @@
                         lon: info.lon, lat: info.lat
                     });
                 }
-                mapRoutesData.push({ label: routeLabel, truckCapacity, stops });
+                mapRoutesData.push({ label: routeLabel, truckCapacity, stops, geometry: route.geometry || null });
                 mapRouteNum++;
             }
 
@@ -1029,6 +1029,22 @@
             document.getElementById(id).classList.add('active');
         }
 
+        // --- Polyline decoder (Google/OSRM encoded polyline format) ---
+        function decodePolyline(encoded) {
+            const points = [];
+            let index = 0, lat = 0, lng = 0;
+            while (index < encoded.length) {
+                let b, shift = 0, result = 0;
+                do { b = encoded.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+                lat += (result & 1) ? ~(result >> 1) : (result >> 1);
+                shift = 0; result = 0;
+                do { b = encoded.charCodeAt(index++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+                lng += (result & 1) ? ~(result >> 1) : (result >> 1);
+                points.push([lat / 1e5, lng / 1e5]);
+            }
+            return points;
+        }
+
         // --- Map view ---
         const ROUTE_COLORS = [
             '#E3000F','#2563EB','#059669','#D97706','#7C3AED','#DB2777','#0891B2','#65A30D',
@@ -1118,7 +1134,6 @@
 
             routesToShow.forEach(route => {
                 const color = ROUTE_COLORS[route.colorIdx % ROUTE_COLORS.length];
-                const lineCoords = [depotLatLng];
 
                 // Route header in sidebar
                 if (selection === 'all') {
@@ -1132,7 +1147,6 @@
                     if (stop.lon == null || stop.lat == null) return;
                     const latLng = L.latLng(stop.lat, stop.lon);
                     bounds.extend(latLng);
-                    lineCoords.push(latLng);
 
                     // Create numbered marker
                     const markerIcon = L.divIcon({
@@ -1141,7 +1155,6 @@
                         iconSize: [22, 22], iconAnchor: [11, 11]
                     });
 
-                    // Aggregate all orders at this delivery point for popup
                     const popupContent = `<div style="font-family:sans-serif;font-size:12px;"><b>${route.label} / Точка ${stop.seq}</b><br>${stop.city}, ${stop.street}<br><b>Замовлення:</b> ${stop.orderNum}<br><b>Вигрузка:</b> ${stop.volume} м³<br><b>Залишок:</b> ${stop.remaining} м³<br><b>Км від депо:</b> ${stop.distKm}</div>`;
 
                     const marker = L.marker(latLng, { icon: markerIcon })
@@ -1157,9 +1170,16 @@
                     stopsList.appendChild(el);
                 });
 
-                // Draw polyline
-                const polyline = L.polyline(lineCoords, {
-                    color: color, weight: 3, opacity: 0.7, dashArray: selection === 'all' ? '6,4' : null
+                // Draw polyline from VROOM geometry (actual roads) or fallback to straight lines
+                let routeCoords;
+                if (route.geometry) {
+                    routeCoords = decodePolyline(route.geometry);
+                } else {
+                    routeCoords = [depotLatLng];
+                    route.stops.forEach(s => { if (s.lon != null && s.lat != null) routeCoords.push([s.lat, s.lon]); });
+                }
+                const polyline = L.polyline(routeCoords, {
+                    color: color, weight: 3, opacity: 0.75, dashArray: selection === 'all' ? '6,4' : null
                 }).addTo(leafletMap);
                 mapPolylines.push(polyline);
             });
