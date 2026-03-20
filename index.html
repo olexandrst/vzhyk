@@ -147,11 +147,6 @@
             <button id="btnStart" class="btn-primary" disabled onclick="startGeocoding()">РОЗПОЧАТИ ГЕОКОДУВАННЯ</button>
 
             <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(0,0,0,0.08);">
-                <label class="input-label">Типи вантажівок (об'єм, м³)</label>
-                <div style="display: flex; gap: 10px; margin-bottom: 12px;">
-                    <input type="number" id="truckType1" class="api-key-input" value="78" min="1" style="margin-bottom:0; text-align:center; font-weight:700;" />
-                    <input type="number" id="truckType2" class="api-key-input" value="30" min="1" style="margin-bottom:0; text-align:center; font-weight:700;" />
-                </div>
                 <button id="btnStartRoutes" class="btn-route" disabled onclick="startRouteGeneration()">ПЛАНУВАТИ МАРШРУТИ</button>
                 <div style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">Файл повинен містити колонки lon та lat</div>
             </div>
@@ -611,6 +606,8 @@
 
         // --- Route Generation (Ядро планувальника) ---
         async function startRouteGeneration() {
+            document.getElementById('dictStatus').style.display = 'none';
+            document.getElementById('dictFallback').style.display = 'none';
             showSection('sectionRouteProcessing');
 
             const progressBar = document.getElementById('routeProgressBar');
@@ -661,9 +658,9 @@
             progressText.textContent = 'Ініціалізація масиву гео матриць...';
             progressBar.style.width = '25%';
 
-            // Build vehicles from UI settings
-            const truckCap1 = parseInt(document.getElementById('truckType1').value) || 78;
-            const truckCap2 = parseInt(document.getElementById('truckType2').value) || 30;
+            // Build vehicles: 50 x 80m³ + 50 x 35m³
+            const truckCap1 = 80;
+            const truckCap2 = 35;
             const vehicles = [];
             let vehicleId = 1;
             for (let i = 0; i < 50; i++) {
@@ -733,12 +730,12 @@
             const routes = vroomData.routes || [];
             const unassigned = vroomData.unassigned || [];
 
-            // Sheet 1: Detailed routes
-            const sheet1Headers = ['Номер маршрута', 'Послідовність вигрузки', 'Номер замовлення', 'Продукція', "Об'єм", 'Кілометраж від початку маршруту'];
+            // Sheet 1: Detailed routes (with address columns)
+            const sheet1Headers = ['Номер маршрута', 'Послідовність вигрузки', 'Номер замовлення', 'Продукція', "Об'єм", 'Країна', 'Індекс', 'Місто', 'Вулиця', 'Кілометраж від початку маршруту'];
             const sheet1Data = [sheet1Headers];
 
-            // Sheet 2: Route summary
-            const sheet2Headers = ['Номер маршрута', 'Вантажівка', "Фактичний об'єм", 'Країна', 'Індекс', 'Місто', 'Вулиця', 'К-сть точок', 'Кілометраж'];
+            // Sheet 2: Route summary (without Вантажівка, with Країна)
+            const sheet2Headers = ['Номер маршрута', "Фактичний об'єм", 'Країна', 'К-сть точок', 'Кілометраж'];
             const sheet2Data = [sheet2Headers];
 
             let routeNumber = 1;
@@ -752,25 +749,16 @@
 
                 // Add 2 empty rows between routes (not before the first one)
                 if (!isFirstRoute) {
-                    sheet1Data.push(['', '', '', '', '', '']);
-                    sheet1Data.push(['', '', '', '', '', '']);
+                    sheet1Data.push(['', '', '', '', '', '', '', '', '', '']);
+                    sheet1Data.push(['', '', '', '', '', '', '', '', '', '']);
                 }
                 isFirstRoute = false;
 
                 const routeLabel = 'MF-' + String(routeNumber).padStart(3, '0');
 
-                // Determine truck type from description
-                const vehicleDesc = route.description || '';
-                // Extract numeric capacity from description like "Вантажівка 78м³ #1"
-                const capMatch = vehicleDesc.match(/(\d+)м³/);
-                const truckType = capMatch ? capMatch[1] : '';
-
                 // Collect unique delivery points and route data
                 const uniquePoints = new Set();
                 const routeCountries = new Set();
-                const routePostals = new Set();
-                const routeCities = new Set();
-                const routeStreets = new Set();
                 let seq = 1;
                 let routeActualVolume = 0;
                 let lastStepDist = 0;
@@ -789,6 +777,10 @@
                         jobInfo.orderNum || '',
                         jobInfo.product || '',
                         jobInfo.volume || 0,
+                        jobInfo.country || '',
+                        jobInfo.postal || '',
+                        jobInfo.city || '',
+                        jobInfo.street || '',
                         distVal
                     ]);
 
@@ -800,9 +792,6 @@
                     uniquePoints.add(pointKey);
 
                     if (jobInfo.country) routeCountries.add(jobInfo.country);
-                    if (jobInfo.postal) routePostals.add(jobInfo.postal);
-                    if (jobInfo.city) routeCities.add(jobInfo.city);
-                    if (jobInfo.street) routeStreets.add(jobInfo.street);
                     seq++;
                 }
 
@@ -812,12 +801,8 @@
 
                 sheet2Data.push([
                     routeLabel,
-                    truckType,
                     Math.round(routeActualVolume * 100) / 100,
                     Array.from(routeCountries).join(', '),
-                    Array.from(routePostals).join(', '),
-                    Array.from(routeCities).join(', '),
-                    Array.from(routeStreets).join(', '),
                     uniquePoints.size,
                     routeDistKm
                 ]);
@@ -826,8 +811,8 @@
             }
 
             // Add ЗАГАЛЬНИЙ КІЛОМЕТРАЖ row at the end of sheet 2
-            sheet2Data.push(['', '', '', '', '', '', '', '', '']);
-            sheet2Data.push(['ЗАГАЛЬНИЙ КІЛОМЕТРАЖ', '', '', '', '', '', '', '', Math.round(grandTotalKm * 10) / 10]);
+            sheet2Data.push(['', '', '', '', '']);
+            sheet2Data.push(['ЗАГАЛЬНИЙ КІЛОМЕТРАЖ', '', '', '', Math.round(grandTotalKm * 10) / 10]);
 
             // Create workbook
             const ws1 = XLSX.utils.aoa_to_sheet(sheet1Data);
@@ -885,6 +870,10 @@
             document.getElementById('logArea').textContent = '';
             document.getElementById('routeProgressBar').style.width = '0%';
             document.getElementById('btnStartRoutes').disabled = true;
+            document.getElementById('dictStatus').style.display = '';
+            if (dictLoaded) {
+                document.getElementById('dictFallback').style.display = 'none';
+            }
 
             showSection('sectionUpload');
         }
